@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/dm112/code/log-vault/src/logs/audit",
+    "files": [
+        {
+            "date": 1688562700039,
+            "name": "/home/dm112/code/log-vault/src/logs/combined/combined-2023-07-05.log",
+            "hash": "e01e6b441eca02d85b49c41e33861fffdadbc8b12b95b475b45f912edc6bf556"
+        },
+        {
+            "date": 1688562700041,
+            "name": "/home/dm112/code/log-vault/src/logs/error/error-2023-07-05.log",
+            "hash": "556e0a08b56a166ffa22daecdff52d1bafd7158816f87cd56a7fcc2aefd9f770"
+        }
+    ],
+    "hashType": "sha256"
+}
