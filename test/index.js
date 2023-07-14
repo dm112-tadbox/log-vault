@@ -9,6 +9,7 @@ import { MongoClient } from "mongodb";
 import Redis from "ioredis";
 import express from "express";
 import bodyParser from "body-parser";
+import { waitForDebugger } from "inspector";
 
 let redis = new Redis();
 const expressApp = express();
@@ -18,6 +19,18 @@ const mockPort = 8021;
 const should = chai.should();
 let output;
 let tgMockBody;
+const emailResMock = {
+  accepted: ["dm112@tadbox.com"],
+  rejected: [],
+  ehlo: ["PIPELINING", "8BITMIME", "SMTPUTF8", "AUTH LOGIN PLAIN"],
+  envelopeTime: 296,
+  messageTime: 236,
+  messageSize: 597,
+  response:
+    "250 Accepted [STATUS=new MSGID=ZCbfhP7y76xDTczKZLFLbYw0bmaB1SeNAAAOwi0beFsaF2gxglQcFjwv-TM]",
+  envelope: { from: "some1@ethereal.email", to: ["some2@ethereal.email"] },
+  messageId: "<f3f27b45-e014-d3f4-556a-d35534ccd638@ethereal.email>"
+};
 
 describe("console transport", () => {
   beforeEach(() => {
@@ -150,16 +163,39 @@ describe("notifications", () => {
     baseUrl: `http://localhost:${mockPort}/`
   };
 
+  const emailOptions = {
+    queueTimeout: 1000,
+    nodemailerOptions: {
+      host: "smtp.ethereal.email",
+      port: "587",
+      auth: {
+        user: "ezekiel27@ethereal.email",
+        pass: "eJJTMXjGfnAJY3juXK"
+      }
+    },
+    from: "ezekiel27@ethereal.email",
+    to: "dm112@tadbox.com",
+    subject: `Alarm notification from LogVault`,
+    mock: emailResMock
+  };
+
   beforeEach(async () => {
     const keys = await redis.keys("log-vault:*");
     for await (const key of keys) {
       await redis.del(key);
     }
-    mockServerStart();
+
+    const blkKeys = await redis.keys(`log-vault:blk-alarm-transport:*`);
+    for await (const key of blkKeys) {
+      await redis.del(key);
+    }
+    const logDirPath = path.resolve(__dirname, "../src/logs");
+    await rm(logDirPath, { recursive: true, force: true });
+    await mockServerStart();
   });
 
-  afterEach(() => {
-    mockServerStop();
+  afterEach(async () => {
+    await mockServerStop();
   });
 
   it("track notification", async () => {
@@ -224,20 +260,21 @@ describe("notifications", () => {
     value.message.should.equal("required to be tracked");
   });
 
-  it("send notification", async () => {
+  it("send notification with telegram", async () => {
     const logger = new LogVault().withFiles();
-    logger.trackNotifications({
-      notificators: [
-        {
-          channels: ["telegram"],
-          searchPattern: "."
-        }
-      ]
-    });
+    logger
+      .trackNotifications({
+        notificators: [
+          {
+            channels: ["telegram"],
+            searchPattern: "."
+          }
+        ]
+      })
+      .queueNotifications({
+        telegram: tgOptions
+      });
     logger.silly({ message: "should be tracked" });
-    logger.queueNotifications({
-      telegram: tgOptions
-    });
     for await (const i of new Array(1000)) {
       await pause(10);
       if (tgMockBody) break;
@@ -247,6 +284,56 @@ describe("notifications", () => {
       .and.include.keys("chat_id", "text", "parse_mode");
     tgMockBody.chat_id.should.equal(tgOptions.group);
     tgMockBody.parse_mode.should.equal("Markdown");
+  });
+
+  it("send notification with email", async () => {
+    const logger = new LogVault()
+      .withFiles()
+      .trackNotifications({
+        notificators: [
+          {
+            channels: ["email"],
+            searchPattern: "."
+          }
+        ]
+      })
+      .queueNotifications({
+        email: emailOptions
+      });
+    setTimeout(() => {
+      logger.warn({ foo: "sent by the email" });
+    }, 100);
+    const keys = await waitForRedisKey("log-vault:alarm:email:*");
+    keys.should.be.a("array").and.have.length(1);
+    const check = await waitForRedisKeyReverse(keys[0]);
+    check.should.equal(true);
+  });
+
+  it("send notification with email if telegram failed", async function () {
+    await mockServerStop();
+    const logger = new LogVault()
+      .withFiles()
+      .trackNotifications({
+        notificators: [
+          {
+            channels: ["telegram"],
+            searchPattern: "."
+          },
+          {
+            channels: ["email"],
+            searchPattern: "Failed to send log notification with telegram"
+          }
+        ]
+      })
+      .queueNotifications({
+        email: emailOptions,
+        telegram: tgOptions
+      });
+    setTimeout(() => {
+      logger.log("should fail");
+    }, 100);
+    const check = await waitForRedisKeyReverse("log-vault:alarm:email:*");
+    check.should.equal(true);
   });
 });
 
@@ -262,6 +349,11 @@ describe("errors handling cases", () => {
 
     const keys = await redis.keys("log-vault:*");
     for await (const key of keys) {
+      await redis.del(key);
+    }
+
+    const blkKeys = await redis.keys(`log-vault:blk-alarm-transport:*`);
+    for await (const key of blkKeys) {
       await redis.del(key);
     }
   });
@@ -430,16 +522,36 @@ function parseLogFile(contents) {
   return result;
 }
 
-function mockServerStart() {
-  expressApp.use(bodyParser.json());
-  expressApp.post("/:tokenstring/sendMessage", (req, res) => {
-    tgMockBody = req.body;
-    res.status(200).send({ ok: true });
+async function mockServerStart() {
+  return new Promise((resolve, reject) => {
+    expressApp.use(bodyParser.json());
+    expressApp.post("/:tokenstring/sendMessage", (req, res) => {
+      tgMockBody = req.body;
+      return res.status(200).send({ ok: true });
+    });
+    mockServer = expressApp.listen(mockPort, () => resolve());
   });
-  mockServer = expressApp.listen(mockPort, () => {});
 }
 
-function mockServerStop() {
-  tgMockBody = null;
-  mockServer.close();
+async function mockServerStop() {
+  return new Promise((resolve, reject) => {
+    tgMockBody = null;
+    mockServer.close(() => resolve());
+  });
+}
+
+async function waitForRedisKey(pattern) {
+  for await (const i of new Array(100)) {
+    const keys = await redis.keys(pattern);
+    if (keys?.length) return keys;
+    await pause(100);
+  }
+}
+
+async function waitForRedisKeyReverse(pattern) {
+  for await (const i of new Array(10)) {
+    await pause(100);
+    const keys = await redis.keys(pattern);
+    if (!keys?.length) return true;
+  }
 }

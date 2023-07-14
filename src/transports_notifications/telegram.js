@@ -15,7 +15,8 @@ export default class Telegram {
         verbose: "🟣",
         debug: "🟤",
         silly: "⚪"
-      }
+      },
+      blockOnErrorTimeout = 1000 * 60 * 60
     } = options;
     this.name = "telegram";
     this.token = token;
@@ -23,30 +24,31 @@ export default class Telegram {
     this.baseUrl = baseUrl;
     this.queueTimeout = queueTimeout;
     this.emoji = emoji;
+    this.blockOnErrorTimeout = blockOnErrorTimeout;
   }
 
   async send(notification) {
     const baseUrl = this.baseUrl || "https://api.telegram.org/";
     const url = new URL(`/bot${this.token}/sendMessage`, baseUrl);
 
-    try {
-      const res = await axios({
-        url: url,
-        method: "post",
-        data: {
-          chat_id: this.group,
-          text: this.format(notification),
-          parse_mode: "Markdown"
-        },
-        timeout: 5000
-      });
-      if (res && res.data && res.data.ok === true) {
-        return true;
-      }
-      throw new Error(res.error || res.data);
-    } catch (error) {
-      console.error(error);
+    // try {
+    const res = await axios({
+      url: url,
+      method: "post",
+      data: {
+        chat_id: this.group,
+        text: this.format(notification),
+        parse_mode: "Markdown"
+      },
+      timeout: 5000
+    });
+    if (res && res.data && res.data.ok === true) {
+      return true;
     }
+    throw new Error(res.error || JSON.stringify(res.data));
+    // } catch (error) {
+    //   console.error('TG_LOG_NOTIFICATION_FAILED', error.cause || error.stack);
+    // }
   }
 
   format(data) {

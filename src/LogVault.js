@@ -1,4 +1,4 @@
-import winston, { loggers } from "winston";
+import winston from "winston";
 import "winston-daily-rotate-file";
 import path from "path";
 import ip from "ip";
@@ -9,8 +9,9 @@ require("winston-mongodb");
 import Notificator from "./Notificator";
 import Telegram from "./transports_notifications/telegram";
 import GraylogHttpTransport from "./transports/graylog-http";
+import Email from "./transports_notifications/email";
 
-const { combine, timestamp, printf } = winston.format;
+const { timestamp, printf } = winston.format;
 
 export default class LogVault {
   constructor(config = {}) {
@@ -218,11 +219,15 @@ export default class LogVault {
   }
 
   queueNotifications(options = {}) {
-    if (!this.redis) return console.error("Notifications required redis setup");
+    if (!this.redis) return this.error("Notifications required redis setup");
     const transports = [];
     if (options.telegram) {
       const telegram = new Telegram(options.telegram);
       transports.push(telegram);
+    }
+    if (options.email) {
+      const email = new Email(options.email);
+      transports.push(email);
     }
 
     const self = this;
@@ -232,18 +237,36 @@ export default class LogVault {
       setInterval(sendNextNotification, transport.queueTimeout);
 
       async function sendNextNotification() {
+        const blkKey = `log-vault:blk-alarm-transport:${transport.name}`;
+        const isTransportBlocked = await self.redis.get(blkKey);
+        if (isTransportBlocked) return;
+
         const keys = await self.redis.keys(
           `log-vault:alarm:${transport.name}:*`
         );
         if (!keys?.length) return;
-        let notification = await self.redis.get(keys[0]);
+        const notification = await self.redis.get(keys[0]);
+        await self.redis.del(keys[0]);
+        let parsedNotification;
         try {
-          notification = JSON.parse(notification);
+          parsedNotification = JSON.parse(notification);
         } catch (e) {}
-        const res = await transport.send(notification);
-        if (res) {
-          await this.redis.del(keys[0]);
-          return true;
+
+        try {
+          const res = await transport.send(parsedNotification);
+          if (!res) {
+            await self.redis.set(keys[0], notification);
+          }
+        } catch (e) {
+          await self.redis.set(
+            blkKey,
+            "true",
+            "PX",
+            transport.blockOnErrorTimeout
+          );
+          self.error(
+            `Failed to send log notification with ${transport.name}, \n ${e.stack}`
+          );
         }
       }
     });

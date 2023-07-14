@@ -1,5 +1,7 @@
 # Log vault
 
+Warning! The application is under the development. Please, do not use in the production.
+
 ## Description
 
 Log vault is a library, intended to use in projects where you are required to collect, store and structure the logs, produced by your nodejs process.

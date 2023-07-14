@@ -1,2 +1,0 @@
-{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-07-05T13:11:40.041Z"}}
-{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-07-05T13:11:40.087Z"}}
