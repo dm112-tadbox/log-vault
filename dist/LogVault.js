@@ -3,18 +3,15 @@ require("winston-daily-rotate-file");
 var _path = require("path");var _path2 = _interopRequireDefault(_path);
 var _ip = require("ip");var _ip2 = _interopRequireDefault(_ip);
 var _mongodb = require("./transports/mongodb");var _mongodb2 = _interopRequireDefault(_mongodb);
-var _graylog = require("./transports/graylog");var _graylog2 = _interopRequireDefault(_graylog);
-var _telegram = require("./transports/telegram");var _telegram2 = _interopRequireDefault(_telegram);
 var _ioredis = require("ioredis");var _ioredis2 = _interopRequireDefault(_ioredis);
 var _sha = require("sha256");var _sha2 = _interopRequireDefault(_sha);
-var _gelfPro = require("gelf-pro");
-var _winstonGraylog = require("winston-graylog2");var _winstonGraylog2 = _interopRequireDefault(_winstonGraylog);
-
 
 var _Notificator = require("./Notificator");var _Notificator2 = _interopRequireDefault(_Notificator);
-var _axios = require("axios");var _axios2 = _interopRequireDefault(_axios);function _interopRequireDefault(obj) {return obj && obj.__esModule ? obj : { default: obj };}require("winston-mongodb");const transports = require("winston-logstash");
+var _telegram = require("./transports_notifications/telegram");var _telegram2 = _interopRequireDefault(_telegram);
+var _graylogHttp = require("./transports/graylog-http");var _graylogHttp2 = _interopRequireDefault(_graylogHttp);
+var _email = require("./transports_notifications/email");var _email2 = _interopRequireDefault(_email);function _interopRequireDefault(obj) {return obj && obj.__esModule ? obj : { default: obj };}require("winston-mongodb");
 
-const { combine, timestamp, printf } = _winston2.default.format;
+const { timestamp, printf } = _winston2.default.format;
 
 class LogVault {
   constructor(config = {}) {
@@ -117,16 +114,18 @@ class LogVault {
       auditFile,
       datePattern: "YYYY-MM-DD",
       maxSize: fileMaxSize,
-      maxFiles: fileStoragePeriod
+      maxFiles: fileStoragePeriod,
+      exitOnError: false
     });
     const transportFileError = new _winston2.default.transports.DailyRotateFile({
       filename: logPathErrorFile,
       level: "error",
-      format: combine(timestamp(), _winston2.default.format.prettyPrint()),
+      // format: combine(timestamp(), winston.format.prettyPrint()),
       auditFile,
       datePattern: "YYYY-MM-DD",
       maxSize: fileMaxSize,
-      maxFiles: fileStoragePeriod
+      maxFiles: fileStoragePeriod,
+      exitOnError: false
     });
 
     this.winstonLogger.add(transportFileCombined);
@@ -139,17 +138,17 @@ class LogVault {
 
   withMongo(options) {
     if (!options.level) options.level = this.maxLevel;
-    const mongo = new _winston2.default.transports.MongoDB(options);
+    // const mongo = new winston.transports.MongoDB(options);
+    const mongo = new _mongodb2.default(options);
     this.winstonLogger.add(mongo);
+    this.transportMongo = mongo;
     return this;
   }
 
   withGraylog(options = {}) {
-    if (!options.level) options.level = this.maxLevel;
-    const transportGraylog = new _graylog2.default({
-      ...options
-    });
-    this.winstonLogger.add(transportGraylog);
+    const graylog = new _graylogHttp2.default(options);
+    this.winstonLogger.add(graylog);
+    this.transportGraylog = graylog;
     return this;
   }
 
@@ -206,10 +205,11 @@ class LogVault {
     process.on("uncaughtException", (e) => {
       this.log(e.stack, { level: "error" });
     });
+    return this;
   }
 
-  trackNotifications(options) {
-    const { redisOptions = {}, notificators } = options;
+  trackNotifications(options = {}) {
+    const { redisOptions = {}, notificators = [] } = options;
     this.redis = new _ioredis2.default(redisOptions);
     this.notificators = [];
     notificators.forEach((options) =>
@@ -219,32 +219,59 @@ class LogVault {
   }
 
   queueNotifications(options = {}) {
-    const { telegram = null } = options;
-    if (telegram && this.redis) {
-      setInterval(async () => {
-        const keys = await this.redis.keys("log-vault:alarm:telegram:*");
-        if (keys && keys.length) {
-          const notification = await this.redis.get(keys[0]);
-          if (notification) {
-            const url = `https://api.telegram.org/bot${telegram.token}/sendMessage`;
-            const res = await (0, _axios2.default)({
-              url,
-              method: "post",
-              data: {
-                chat_id: telegram.group,
-                text: notification
-              },
-              timeout: 5000
-            });
-            if (res && res.data && res.data.ok === true) {
-              await this.redis.del(keys[0]);
-              return true;
-            }
-            console.error(res.error);
-          }
-        }
-      }, 5000);
+    if (!this.redis) return this.error("Notifications required redis setup");
+    const transports = [];
+    if (options.telegram) {
+      const telegram = new _telegram2.default(options.telegram);
+      transports.push(telegram);
     }
+    if (options.email) {
+      const email = new _email2.default(options.email);
+      transports.push(email);
+    }
+
+    const self = this;
+
+    transports.forEach(async (transport) => {
+      await sendNextNotification(transport);
+      setInterval(sendNextNotification, transport.queueTimeout);
+
+      async function sendNextNotification() {
+        const blkKey = `log-vault:blk-alarm-transport:${transport.name}`;
+        const isTransportBlocked = await self.redis.get(blkKey);
+        if (isTransportBlocked) return;
+
+        const keys = await self.redis.keys(
+          `log-vault:alarm:${transport.name}:*`
+        );
+        if (!keys?.length) return;
+        const notification = await self.redis.get(keys[0]);
+        await self.redis.del(keys[0]);
+        let parsedNotification;
+        try {
+          parsedNotification = JSON.parse(notification);
+        } catch (e) {}
+
+        try {
+          const res = await transport.send(parsedNotification);
+          if (!res) {
+            await self.redis.set(keys[0], notification);
+          }
+        } catch (e) {
+          await self.redis.set(
+            blkKey,
+            "true",
+            "PX",
+            transport.blockOnErrorTimeout
+          );
+          self.error(
+            `Failed to send log notification with ${transport.name}, \n ${e.stack}`
+          );
+        }
+      }
+    });
+
+    return this;
   }
 }exports.default = LogVault;
 //# sourceMappingURL=LogVault.js.map
