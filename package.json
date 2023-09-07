@@ -1,8 +1,8 @@
 {
   "name": "log-vault",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Log vault is a library, intended to use in projects where you are required to collect, store and structure the logs, produced by your nodejs process",
-  "main": "dist/index.js",
+  "main": "dist/LogVault.js",
   "scripts": {
     "start": "babel src --out-dir ./src --source-maps ",
     "build": "babel src --out-dir ./dist --source-maps",
