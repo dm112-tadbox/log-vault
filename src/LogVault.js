@@ -98,7 +98,7 @@ export default class LogVault {
 
   withFiles(options = {}) {
     const {
-      logPath = path.resolve(__dirname, "logs"),
+      logPath = require("path").resolve("./logs"),
       fileMaxSize = "1m",
       fileStoragePeriod = "14d"
     } = options;
