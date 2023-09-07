@@ -28,7 +28,7 @@ module.exports = class MongoTransport extends Transport {
       this.emit("error", error);
       callback(error);
     } finally {
-      await client.close();
+      await this.client.close();
     }
   }
 };
