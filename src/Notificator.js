@@ -4,13 +4,13 @@ export default class Notificator {
       channels,
       level = null,
       searchPattern,
-      searchFlags = null
+      searchFlags = null,
+      name = null
     } = options;
     this.channels = channels;
     this.level = level;
     this.searchPattern = searchPattern;
     this.searchFlags = searchFlags;
-
     this.regExp = searchFlags
       ? new RegExp(searchPattern, searchFlags)
       : new RegExp(searchPattern);

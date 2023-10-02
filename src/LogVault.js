@@ -10,10 +10,13 @@ import Notificator from "./Notificator";
 import Telegram from "./transports_notifications/telegram";
 import GraylogHttpTransport from "./transports/graylog-http";
 import Email from "./transports_notifications/email";
+import { TelegramNotificator } from "./notificators/TelegramNotificator";
+import { TelegramNotificationChannel } from "./notificationChannels/telegramNotificationChannel";
+import { Notification } from "./Notification";
 
 const { timestamp, printf } = winston.format;
 
-export default class LogVault {
+export class LogVault {
   constructor(config = {}) {
     // defaults
     this.levels = {
@@ -43,6 +46,10 @@ export default class LogVault {
     this.appName = appName;
     this.trackNodeEnv = trackNodeEnv;
     this.trackServerIp = trackServerIp;
+
+    this.notificators = [];
+    this.notificationChannels = [];
+    this.notifications = [];
 
     this.winstonLogger = winston.createLogger({
       levels: this.levels,
@@ -152,7 +159,7 @@ export default class LogVault {
     return this;
   }
 
-  log(message, options = {}) {
+  async log(message, options = {}) {
     const { level = "info" } = options;
 
     const metadata = {
@@ -170,24 +177,22 @@ export default class LogVault {
       metadata
     });
 
-    if (this.redis && this.notificators) {
-      this.notificators.forEach((notificator) => {
-        if (
-          notificator.level &&
-          this.levels[level] > this.levels[notificator.level]
-        )
-          return;
-        metadata.message = message;
-        const stringifiedData = JSON.stringify(metadata);
-        const stringifiedMessage =
-          typeof message === "string" ? message : JSON.stringify(message);
-        const matched = notificator.regExp.test(stringifiedMessage);
-        if (!matched) return;
-        const hash = sha256(stringifiedData);
-        notificator.channels.forEach((channel) => {
-          this.redis.set(`log-vault:alarm:${channel}:${hash}`, stringifiedData);
-        });
-      });
+    if (this.notifications) {
+      for await (const notification of this.notifications) {
+        if (!notification.level || this.levels[notification.level] <= level) {
+          const stringifiedMessage =
+            typeof message === "string" ? message : JSON.stringify(message);
+          const matched = notification.regExp.test(stringifiedMessage);
+          if (matched) {
+            notification.channels.forEach((channelName) => {
+              const channel = this.notificationChannels.find(
+                (c) => c.name === channelName
+              );
+              if (channel) channel.addToQueue({ message, ...metadata });
+            });
+          }
+        }
+      }
     }
   }
 
@@ -208,14 +213,29 @@ export default class LogVault {
     return this;
   }
 
-  trackNotifications(options = {}) {
-    const { redisOptions = {}, notificators = [] } = options;
-    this.redis = new Redis(redisOptions);
-    this.notificators = [];
-    notificators.forEach((options) =>
-      this.notificators.push(new Notificator(options))
-    );
+  trackNotifications({
+    redis = { host: "localhost", port: 6379 },
+    telegram,
+    email
+  }) {
+    this.redis = redis;
+    if (telegram)
+      this.notificators.push(new TelegramNotificator({ ...telegram, redis }));
+    // if (email) this.notificators.email = new EmailNotificator(email);
+    // const { redisOptions = {}, notificators = [] } = options;
+    // this.redis = new Redis(redisOptions);
+    // this.notificators = [];
+    // notificators.forEach((options) =>
+    //   this.notificators.push(new Notificator(options))
+    // );
     return this;
+  }
+
+  withNotifications(options = {}) {
+    const { redis = {}, telegram, email } = options;
+    if (telegram)
+      this.notificators.telegram = new TelegramNotificator(telegram, redis);
+    if (email) this.notificators.email = new EmailNotificator(email, redis);
   }
 
   queueNotifications(options = {}) {
@@ -271,6 +291,44 @@ export default class LogVault {
       }
     });
 
+    return this;
+  }
+
+  // -----------------------
+  addNotificationChannel({ type, name, options }) {
+    const types = {
+      telegram: TelegramNotificationChannel
+    };
+
+    if (!name) throw new Error(`Notification channel name is required`);
+
+    if (!types[type])
+      throw new Error(`Notification channel "${type}" is not supported`);
+
+    if (this.notificationChannels.find((c) => c.name === name))
+      throw new Error(
+        `Notification channel with name "${name}" already exists`
+      );
+
+    if (!options.redis)
+      options.redis = {
+        host: "localhost",
+        port: 6379
+      };
+
+    this.notificationChannels.push(new types[type]({ ...options, name }));
+    return this;
+  }
+
+  addNotification(options) {
+    if (options.level && !this.levels(options.level))
+      throw new Error(`There's no such log level: ${options.level}`);
+    this.notifications.push(new Notification(options));
+    return this;
+  }
+
+  serveNotifications() {
+    this.notificationChannels.forEach((channel) => channel.serve());
     return this;
   }
 }

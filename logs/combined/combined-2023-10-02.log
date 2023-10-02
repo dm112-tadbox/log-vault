@@ -1,0 +1,45 @@
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T15:27:50.007Z"}}
+{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T15:28:04.232Z"}}
+{"level":"warn","message":{"foo":"sent by the email"},"metadata":{"env":"test","log_level":"warn","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T15:28:04.510Z"}}
+{"level":"info","message":"should fail","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T15:28:05.519Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T15:28:21.410Z"}}
+{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T15:28:21.493Z"}}
+{"level":"warn","message":{"foo":"sent by the email"},"metadata":{"env":"test","log_level":"warn","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T15:28:21.751Z"}}
+{"level":"info","message":"should fail","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T15:28:22.760Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T18:58:03.916Z"}}
+{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T18:58:03.977Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:00:01.872Z"}}
+{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:00:01.925Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:00:16.829Z"}}
+{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:00:16.883Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:00:33.345Z"}}
+{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:00:33.402Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:01:18.151Z"}}
+{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:01:18.206Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:01:45.278Z"}}
+{"level":"info","message":"should be tracked","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:01:45.332Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:02:21.579Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:03:10.205Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:03:18.901Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:03:38.301Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:05:18.221Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:06:02.187Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:07:10.797Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:07:27.212Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:08:01.684Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:08:15.697Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:25:40.951Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:27:01.721Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:27:23.623Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:30:30.548Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:40:01.798Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:40:13.832Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:54:27.790Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:54:45.260Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:55:13.126Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:55:41.915Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:56:02.248Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:56:51.892Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:58:06.625Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:58:25.288Z"}}
+{"level":"info","message":"This should be logged to a file only","metadata":{"env":"test","log_level":"info","process":"log-vault","serverIp":"172.24.123.159","timestamp":"2023-10-02T19:59:02.880Z"}}
