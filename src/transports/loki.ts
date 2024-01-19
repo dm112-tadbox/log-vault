@@ -26,8 +26,10 @@ export const getLokiTransport = function ({
     host: host || "http://127.0.0.1:3100",
     format: winston.format.combine(winston.format.timestamp(), customJson()),
     json: true,
-    gracefulShutdown: true
-    // handleExceptions: true,
-    // handleRejections: true
+    timeout: 2000,
+    gracefulShutdown: true,
+    onConnectionError: (err) => {
+      console.error(err);
+    }
   });
 };

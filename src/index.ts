@@ -6,6 +6,7 @@ export { Level } from "./types/Level";
 import { getLokiTransport } from "./transports/loki";
 import { Console } from "winston/lib/winston/transports";
 import { projectDirName } from "./util/projectDirName";
+import { getFileTransport } from "./transports/file";
 
 interface LogVaultConstructorOptions {
   maxLevel?: Level;
@@ -14,7 +15,7 @@ interface LogVaultConstructorOptions {
 }
 
 export class LogVault {
-  private logger: winston.Logger;
+  public logger: winston.Logger;
   private projectName: string;
   public maxLevel: Level;
 
@@ -38,13 +39,41 @@ export class LogVault {
     return this;
   }
 
+  public withFiles(params?: {
+    logPath?: string;
+    level?: Level;
+    fileMaxSize?: string;
+    storagePeriod?: string;
+  }): LogVault {
+    const combinedFileTransport = getFileTransport({
+      logPath: params?.logPath,
+      level: params?.level || this.maxLevel,
+      fileMaxSize: params?.fileMaxSize,
+      storagePeriod: params?.storagePeriod
+    });
+    this.logger.add(combinedFileTransport);
+
+    const errorFileTransport = getFileTransport({
+      logPath: params?.logPath,
+      level: Level.error,
+      fileMaxSize: params?.fileMaxSize,
+      storagePeriod: params?.storagePeriod
+    });
+    this.logger.add(errorFileTransport);
+    this.logger.exceptions.handle(errorFileTransport);
+    this.logger.rejections.handle(errorFileTransport);
+    return this;
+  }
+
   public withLoki(params?: { host?: string }): LogVault {
     const lokiTransport = getLokiTransport({
       host: params?.host,
       labels: this.labels
     });
+    console.log(lokiTransport);
     this.logger.add(lokiTransport);
     this.logger.exceptions.handle(lokiTransport);
+    this.logger.rejections.handle(lokiTransport);
     return this;
   }
 
