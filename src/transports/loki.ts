@@ -13,11 +13,14 @@ export const getLokiTransport = function ({
     const MESSAGE = Symbol.for("message");
     if (info.error) info[MESSAGE] = inspect(info.error);
     else
-      info[MESSAGE] = inspect(info.message, {
-        compact: false,
-        maxStringLength: 1024,
-        maxArrayLength: 10
-      });
+      info[MESSAGE] =
+        typeof info.message === "string"
+          ? info.message
+          : inspect(info.message, {
+              compact: false,
+              maxStringLength: 1024,
+              maxArrayLength: 10
+            });
     info.labels = labels;
     return info;
   });

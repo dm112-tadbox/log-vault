@@ -7,6 +7,7 @@ import { getLokiTransport } from "./transports/loki";
 import { Console } from "winston/lib/winston/transports";
 import { projectDirName } from "./util/projectDirName";
 import { getFileTransport } from "./transports/file";
+import { MongoTransportParams, getMongoTransport } from "./transports/mongo";
 
 interface LogVaultConstructorOptions {
   maxLevel?: Level;
@@ -70,10 +71,18 @@ export class LogVault {
       host: params?.host,
       labels: this.labels
     });
-    console.log(lokiTransport);
     this.logger.add(lokiTransport);
     this.logger.exceptions.handle(lokiTransport);
     this.logger.rejections.handle(lokiTransport);
+    return this;
+  }
+
+  public withMongo(params: MongoTransportParams): LogVault {
+    if (!params.level) params.level = this.maxLevel;
+    const mongoTransport = getMongoTransport(params);
+    this.logger.add(mongoTransport);
+    this.logger.exceptions.handle(mongoTransport);
+    this.logger.rejections.handle(mongoTransport);
     return this;
   }
 
@@ -88,7 +97,8 @@ export class LogVault {
   protected write(level: Level, messages: any) {
     this.logger.log({
       level,
-      message: messages
+      message: messages,
+      labels: this.labels
     });
   }
 

@@ -7,8 +7,9 @@
     "start": "babel src --out-dir ./src --source-maps ",
     "build": "tsc",
     "watch": "babel src --out-dir ./dist --source-maps --watch",
-    "test": "jest --detectOpenHandles",
-    "test:watch": "jest --watch --detectOpenHandles",
+    "test": "jest --forceExit",
+    "test:watch": "jest --watch --forceExit",
+    "test:coverage": "jest --coverage",
     "lint": "eslint --fix . --ext .ts"
   },
   "keywords": [
@@ -25,26 +26,22 @@
   "author": "dm112@tadbox.com",
   "license": "ISC",
   "dependencies": {
-    "axios": "^1.6.5",
-    "dotenv": "^16.3.1",
-    "triple-beam": "^1.4.1",
     "winston": "^3.9.0",
     "winston-daily-rotate-file": "^4.7.1",
     "winston-loki": "^6.0.8",
-    "winston-mongodb": "^5.1.1",
-    "winston-transport": "^4.5.0"
+    "winston-mongodb": "^5.1.1"
   },
   "devDependencies": {
-    "@types/capture-console": "^1.0.5",
     "@types/eslint": "^8.56.2",
     "@types/jest": "^29.5.11",
     "@types/node": "^20.11.4",
+    "@types/strip-color": "^0.1.2",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
-    "capture-console": "^1.0.2",
     "eslint": "^8.56.0",
     "eslint-plugin-jest": "^27.6.3",
     "jest": "^29.7.0",
     "prettier": "^3.1.0",
+    "strip-color": "^0.1.0",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

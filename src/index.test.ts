@@ -1,60 +1,58 @@
 import LokiTransport from "winston-loki";
 import { Level, LogVault } from "./index";
-import capcon from "capture-console";
 import { readFileSync, rmSync } from "fs";
 import { resolve } from "node:path";
+import { MongoDB } from "winston-mongodb";
+import { Console } from "winston/lib/winston/transports";
+import sliceAnsi from "strip-color";
 
-let output: string;
+let output = "";
 
-describe.skip("console transport", () => {
+describe("console transport", () => {
   beforeEach(() => {
-    output = "";
-    consoleCaptureStart();
+    // consoleCaptureStart();
   });
 
   afterEach(() => {
-    consoleCaptureEnd();
+    // consoleCaptureEnd();
   });
 
-  it("console maxLevel should be info by the default", () => {
-    const logger = new LogVault();
-    logger.log("HTTP log message", { level: "http" });
-    const { level, message } = extractOutput();
-
-    console.log(level, message);
-  });
-
-  it.skip("logger with console", () => {
+  it("logging with console", async () => {
     const logger = new LogVault();
 
-    logger.error("hi there");
-    logger.warn("hi there");
-    logger.info("hi there");
-    logger.http("hi there");
-    logger.verbose("hi there");
-    logger.debug("hi there");
-    logger.silly("hi there");
+    const consoleTransport = logger.logger.transports.find(
+      (t) => t instanceof Console
+    );
+    if (!consoleTransport)
+      throw new Error("Couldn't assign the console transport");
+
+    const spy = jest
+      .spyOn(consoleTransport, "log")
+      .mockImplementation((str) => {
+        str[Symbol.for("message")] = sliceAnsi(str[Symbol.for("message")]);
+        output = str;
+      });
+
+    logger.log("HTTP log message");
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      level: "\x1B[32m\x1B[1minfo\x1B[22m\x1B[39m",
+      message: ["HTTP log message"],
+      labels: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      timestamp: expect.stringMatching(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
+      ),
+      [Symbol.for("level")]: "info",
+      [Symbol.for("message")]: expect.stringMatching(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\sinfo\sHTTP\slog\smessage/g
+      )
+    });
   });
-
-  // it.skip("log different things", async () => {
-  //   const logger = new LogVault();
-
-  //   logger.log({
-  //     foo: "bar"
-  //   });
-  // });
-
-  // it.skip("log circular", async () => {
-  //   const logger = new LogVault();
-
-  //   const chineseBox: { a: string; content: string | object } = {
-  //     a: "b",
-  //     content: ""
-  //   };
-  //   chineseBox.content = chineseBox;
-
-  //   logger.log(chineseBox);
-  // });
 });
 
 describe("files transport", () => {
@@ -154,7 +152,7 @@ describe("files transport", () => {
   }
 });
 
-describe.skip("loki transport", () => {
+describe("loki transport", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -165,12 +163,9 @@ describe.skip("loki transport", () => {
     const loki = logger.logger.transports.find(
       (t) => t instanceof LokiTransport
     );
-    if (!loki) return;
+    if (!loki) throw new Error("Couldn't assign Loki transport");
 
     const spy = jest.spyOn(loki, "log");
-    /* .mockImplementation((info) => {
-      console.log(info);
-    }); */
 
     logger.log("Log record");
 
@@ -195,27 +190,40 @@ describe.skip("loki transport", () => {
   });
 });
 
-function consoleCaptureStart() {
-  output = "";
-  capcon.startCapture(process.stdout, function (stdout) {
-    output += stdout;
+describe("mongo transport", () => {
+  it("log to mongo", async () => {
+    const logger = new LogVault({ noConsole: true }).withMongo({
+      db: "mongodb+srv://usr:pwd@cluster0.c9lvsrg.mongodb.net/?retryWrites=true&w=majority",
+      test: true
+    });
+
+    let output = "";
+
+    const mongo = logger.logger.transports.find((t) => t instanceof MongoDB);
+    if (!mongo) throw new Error("Failed to instantiate Mongo connection");
+    const spy = jest.spyOn(mongo, "log").mockImplementation((data) => {
+      output = data;
+    });
+
+    logger.log("Hi Mongo");
+
+    logger.logger.remove(mongo);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      level: "info",
+      message: ["Hi Mongo"],
+      labels: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      [Symbol.for("level")]: "info",
+      [Symbol.for("message")]:
+        '{"labels":{"environment":"test","process":"log-vault","project":"log-vault"},"level":"info","message":["Hi Mongo"]}'
+    });
   });
-}
-
-function consoleCaptureEnd() {
-  capcon.stopCapture(process.stdout);
-}
-
-function extractOutput() {
-  const stringifiedOutput = JSON.stringify(output);
-  const regexp =
-    /\\t\d{4,5}(-\d{2}){2}T(\d{2}:){2}\d{2}.\d{3}Z\s*\\u001b\[\d{2}m(.+)\\u001b\[39m\s*(.+)\\n/g;
-  const match = regexp.exec(stringifiedOutput);
-  return {
-    level: match ? match[3] : null,
-    message: match ? match[4] : null
-  };
-}
+});
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
