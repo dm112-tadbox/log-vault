@@ -2,7 +2,6 @@ import winston from "winston";
 import { getConsoleTransport } from "./transports/console";
 import { defaultLevels } from "./defaults/levels";
 import { Level } from "./types/Level";
-export { Level } from "./types/Level";
 import { LokiTransportOptions, getLokiTransport } from "./transports/loki";
 import { Console } from "winston/lib/winston/transports";
 import { projectDirName } from "./util/projectDirName";
@@ -105,14 +104,6 @@ export class LogVault {
     return this;
   }
 
-  /* public withMongo(params: MongoDBConnectionOptions): LogVault {
-    if (!params.level) params.level = this.maxLevel;
-    const mongoTransport = getMongoTransport(params);
-    this.logger.add(mongoTransport);
-    this.logger.exceptions.handle(mongoTransport);
-    this.logger.rejections.handle(mongoTransport);
-    return this;
-  } */
   public withMongo(params: MongoDBConnectionOptions): LogVault {
     if (!params.level) params.level = this.maxLevel;
     const mongoTransport = getMongoTransport({

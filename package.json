@@ -1,11 +1,10 @@
 {
   "name": "log-vault",
-  "version": "1.1.1",
+  "version": "1.1.11",
   "description": "Log vault is a library, intended to use in projects where you are required to collect, store and structure the logs, produced by your nodejs process",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "start": "babel src --out-dir ./src --source-maps ",
     "build": "tsc",
     "watch": "babel src --out-dir ./dist --source-maps --watch",
     "test": "jest --forceExit --verbose --runInBand",
@@ -28,8 +27,6 @@
   "author": "dm112@tadbox.com",
   "license": "ISC",
   "dependencies": {
-    "@types/capture-console": "^1.0.5",
-    "capture-console": "^1.0.2",
     "winston": "^3.9.0",
     "winston-daily-rotate-file": "^4.7.1",
     "winston-loki": "^6.0.8",
