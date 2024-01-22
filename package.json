@@ -50,5 +50,13 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "winston-transport": "^4.6.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dm112-tadbox/log-vault.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dm112-tadbox/log-vault/issues"
+  },
+  "homepage": "https://github.com/dm112-tadbox/log-vault#readme"
 }
