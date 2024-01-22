@@ -11,7 +11,8 @@
     "test": "jest --forceExit --verbose --runInBand",
     "test:watch": "jest --watch --forceExit --verbose --runInBand",
     "test:coverage": "jest --coverage",
-    "lint": "eslint --fix . --ext .ts"
+    "lint": "eslint --fix . --ext .ts",
+    "prepublish": "tsc"
   },
   "keywords": [
     "log",
