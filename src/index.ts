@@ -3,83 +3,122 @@ import { getConsoleTransport } from "./transports/console";
 import { defaultLevels } from "./defaults/levels";
 import { Level } from "./types/Level";
 export { Level } from "./types/Level";
-import { getLokiTransport } from "./transports/loki";
+import { LokiTransportOptions, getLokiTransport } from "./transports/loki";
 import { Console } from "winston/lib/winston/transports";
 import { projectDirName } from "./util/projectDirName";
 import { getFileTransport } from "./transports/file";
-import { MongoTransportParams, getMongoTransport } from "./transports/mongo";
+import { getMongoTransport } from "./transports/mongo";
+import { DailyRotateFileTransportOptions } from "winston-daily-rotate-file";
+import { inspect } from "util";
+import { MongoDBConnectionOptions } from "winston-mongodb";
 
 interface LogVaultConstructorOptions {
   maxLevel?: Level;
-  projectName?: string;
+  project?: string;
   noConsole?: boolean;
+  captureConsole?: boolean;
 }
+
+export type Labels = { [key: string]: string | undefined };
 
 export class LogVault {
   public logger: winston.Logger;
-  private projectName: string;
+  private project: string;
   public maxLevel: Level;
 
   constructor(params?: LogVaultConstructorOptions) {
-    this.maxLevel = params?.maxLevel || Level.info;
-    this.projectName = params?.projectName || projectDirName();
+    const {
+      maxLevel = Level.info,
+      project = projectDirName(),
+      noConsole = false,
+      captureConsole
+    } = params || {};
+    this.maxLevel = maxLevel;
+    this.project = project;
     this.logger = winston.createLogger({
       levels: defaultLevels,
       level: this.maxLevel,
       exitOnError: false
     });
-    if (!params?.noConsole) this.withConsole();
+    if (!noConsole) this.withConsole();
+    if (captureConsole) this.captureConsole();
   }
 
-  public withConsole(params?: { maxLevel?: Level }): LogVault {
+  public withConsole(
+    params?: winston.transports.ConsoleTransportOptions
+  ): LogVault {
     if (this.logger.transports.find((t) => t instanceof Console))
       throw new Error("Console transport is already added");
     this.logger.add(
-      getConsoleTransport({ maxLevel: params?.maxLevel || this.maxLevel })
+      getConsoleTransport({
+        ...params,
+        ...(!params?.level && { level: this.maxLevel })
+      })
     );
     return this;
   }
 
-  public withFiles(params?: {
-    logPath?: string;
-    level?: Level;
-    fileMaxSize?: string;
-    storagePeriod?: string;
-  }): LogVault {
+  public captureConsole() {
+    console.error = (...args) => {
+      return this.logger.error(...args);
+    };
+    console.warn = (...args) => {
+      return this.logger.warn(...args);
+    };
+    console.log = (...args) => {
+      return this.logger.info(...args);
+    };
+    console.info = (...args) => {
+      return this.logger.info(...args);
+    };
+  }
+
+  public withFiles(params?: DailyRotateFileTransportOptions): LogVault {
+    if (!params) params = {};
     const combinedFileTransport = getFileTransport({
-      logPath: params?.logPath,
-      level: params?.level || this.maxLevel,
-      fileMaxSize: params?.fileMaxSize,
-      storagePeriod: params?.storagePeriod
+      ...params,
+      ...(!params.level && { level: this.maxLevel })
     });
     this.logger.add(combinedFileTransport);
 
     const errorFileTransport = getFileTransport({
-      logPath: params?.logPath,
+      ...params,
       level: Level.error,
-      fileMaxSize: params?.fileMaxSize,
-      storagePeriod: params?.storagePeriod
+      handleExceptions: true,
+      handleRejections: true
     });
     this.logger.add(errorFileTransport);
-    this.logger.exceptions.handle(errorFileTransport);
-    this.logger.rejections.handle(errorFileTransport);
     return this;
   }
 
-  public withLoki(params?: { host?: string }): LogVault {
+  public withLoki(params?: LokiTransportOptions): LogVault {
+    params = params || {};
     const lokiTransport = getLokiTransport({
-      host: params?.host,
-      labels: this.labels
+      ...params,
+      level: params.level || this.maxLevel,
+      labels: {
+        ...params?.labels,
+        ...this.labels
+      }
     });
     this.logger.add(lokiTransport);
-    this.logger.exceptions.handle(lokiTransport);
-    this.logger.rejections.handle(lokiTransport);
     return this;
   }
 
-  public withMongo(params: MongoTransportParams): LogVault {
+  /* public withMongo(params: MongoDBConnectionOptions): LogVault {
     if (!params.level) params.level = this.maxLevel;
     const mongoTransport = getMongoTransport(params);
+    this.logger.add(mongoTransport);
+    this.logger.exceptions.handle(mongoTransport);
+    this.logger.rejections.handle(mongoTransport);
+    return this;
+  } */
+  public withMongo(params: MongoDBConnectionOptions): LogVault {
+    if (!params.level) params.level = this.maxLevel;
+    const mongoTransport = getMongoTransport({
+      ...params,
+      labels: this.labels
+    });
     this.logger.add(mongoTransport);
     this.logger.exceptions.handle(mongoTransport);
     this.logger.rejections.handle(mongoTransport);
@@ -88,17 +127,20 @@ export class LogVault {
 
   protected get labels() {
     return {
-      project: this.projectName,
+      project: this.project,
       process: process.env.npm_package_name,
       environment: process.env.NODE_ENV
     };
   }
 
-  protected write(level: Level, messages: any) {
+  protected write(level: Level, messages: any, labels?: Labels) {
     this.logger.log({
       level,
       message: messages,
-      labels: this.labels
+      labels: {
+        ...this.labels,
+        ...labels
+      }
     });
   }
 
@@ -116,6 +158,26 @@ export class LogVault {
 
   public log(...messages: any) {
     return this.write(Level.info, messages);
+  }
+
+  public logWithDetails({
+    level = Level.info,
+    message,
+    labels
+  }: {
+    level?: Level;
+    message: any;
+    labels?: Labels;
+  }) {
+    this.write(
+      level,
+      inspect(message, {
+        compact: false,
+        maxStringLength: 1024,
+        maxArrayLength: 10
+      }),
+      labels
+    );
   }
 
   public http(...messages: any) {

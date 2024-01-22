@@ -7,8 +7,8 @@
     "start": "babel src --out-dir ./src --source-maps ",
     "build": "tsc",
     "watch": "babel src --out-dir ./dist --source-maps --watch",
-    "test": "jest --forceExit",
-    "test:watch": "jest --watch --forceExit",
+    "test": "jest --forceExit --verbose --runInBand",
+    "test:watch": "jest --watch --forceExit --verbose --runInBand",
     "test:coverage": "jest --coverage",
     "lint": "eslint --fix . --ext .ts"
   },
@@ -26,6 +26,10 @@
   "author": "dm112@tadbox.com",
   "license": "ISC",
   "dependencies": {
+    "@types/capture-console": "^1.0.5",
+    "capture-console": "^1.0.2",
+    "console-hook": "^0.0.2",
+    "hook-std": "^3.0.0",
     "winston": "^3.9.0",
     "winston-daily-rotate-file": "^4.7.1",
     "winston-loki": "^6.0.8",
@@ -44,6 +48,7 @@
     "strip-color": "^0.1.0",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "winston-transport": "^4.6.0"
   }
 }

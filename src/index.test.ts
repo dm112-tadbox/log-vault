@@ -4,54 +4,196 @@ import { readFileSync, rmSync } from "fs";
 import { resolve } from "node:path";
 import { MongoDB } from "winston-mongodb";
 import { Console } from "winston/lib/winston/transports";
-import sliceAnsi from "strip-color";
-
-let output = "";
+import stripColor from "strip-color";
 
 describe("console transport", () => {
-  beforeEach(() => {
-    // consoleCaptureStart();
-  });
+  let output: any;
+  let logger: LogVault | undefined;
 
-  afterEach(() => {
-    // consoleCaptureEnd();
-  });
+  function getConsoleSpy(logger: LogVault) {
+    const consoleTransport = getConsoleTransport(logger);
+    return jest.spyOn(consoleTransport, "log").mockImplementation((data) => {
+      const decolorized = stripColor(data[Symbol.for("message")]);
+      const matched = decolorized.match(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s(.*)$/s
+      );
+      if (!matched) throw new Error("No match found in output");
+      output = matched[2];
+    });
+  }
 
-  it("logging with console", async () => {
-    const logger = new LogVault();
-
+  function getConsoleTransport(logger: LogVault) {
     const consoleTransport = logger.logger.transports.find(
       (t) => t instanceof Console
     );
     if (!consoleTransport)
       throw new Error("Couldn't assign the console transport");
+    return consoleTransport;
+  }
 
-    const spy = jest
-      .spyOn(consoleTransport, "log")
-      .mockImplementation((str) => {
-        str[Symbol.for("message")] = sliceAnsi(str[Symbol.for("message")]);
-        output = str;
-      });
+  beforeEach(() => {
+    output = "";
+    jest.clearAllMocks();
+  });
 
-    logger.log("HTTP log message");
+  afterEach(() => {
+    if (logger) {
+      const consoleTransport = getConsoleTransport(logger);
+      logger.logger.exceptions.unhandle(consoleTransport);
+      logger.logger.rejections.unhandle(consoleTransport);
+    }
+    console.log = Object.getPrototypeOf(console).log;
+  });
+
+  it("logger log single string message", () => {
+    logger = new LogVault();
+    const spy = getConsoleSpy(logger);
+
+    logger.log("Single string message");
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(output).toEqual({
-      level: "\x1B[32m\x1B[1minfo\x1B[22m\x1B[39m",
-      message: ["HTTP log message"],
-      labels: {
-        project: "log-vault",
-        process: "log-vault",
-        environment: "test"
-      },
-      timestamp: expect.stringMatching(
-        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-      ),
-      [Symbol.for("level")]: "info",
-      [Symbol.for("message")]: expect.stringMatching(
-        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\sinfo\sHTTP\slog\smessage/g
-      )
-    });
+    expect(output).toEqual("info Single string message");
+  });
+
+  it("logger log several string messages", () => {
+    logger = new LogVault();
+    const spy = getConsoleSpy(logger);
+
+    logger.log("First", "Second");
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info First, Second");
+  });
+
+  it("logger log an object", () => {
+    logger = new LogVault();
+    const spy = getConsoleSpy(logger);
+
+    logger.log({ foo: "bar" });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info \n{\n  foo: 'bar'\n}");
+  });
+
+  it("logger log different entities", () => {
+    logger = new LogVault();
+    const spy = getConsoleSpy(logger);
+
+    logger.log("this is an object:", { some: "data" }, [1, 2]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual(
+      "info this is an object:, \n{\n  some: 'data'\n},\n\n[\n  1,\n  2\n]"
+    );
+  });
+
+  it("logger log circular object", () => {
+    const circular: {
+      b: any;
+    } = {
+      b: 2
+    };
+    circular.b = circular;
+
+    logger = new LogVault();
+    const spy = getConsoleSpy(logger);
+
+    logger.log(circular);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info \n<ref *1> {\n  b: [Circular *1]\n}");
+  });
+
+  it("logger error", () => {
+    logger = new LogVault();
+    const spy = getConsoleSpy(logger);
+    logger.error("Error");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("error Error");
+  });
+
+  it("logger warn", () => {
+    logger = new LogVault();
+    const spy = getConsoleSpy(logger);
+    logger.warn("Warn");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("warn Warn");
+  });
+
+  it("logger info", () => {
+    logger = new LogVault();
+    const spy = getConsoleSpy(logger);
+    logger.info("Data");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info Data");
+  });
+
+  it("logger http", () => {
+    logger = new LogVault({ maxLevel: Level.silly });
+    const spy = getConsoleSpy(logger);
+    logger.http("Data");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("http Data");
+  });
+
+  it("logger debug", () => {
+    logger = new LogVault({ maxLevel: Level.silly });
+    const spy = getConsoleSpy(logger);
+    logger.debug("Data");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("debug Data");
+  });
+
+  it("logger silly", () => {
+    const logger = new LogVault({ maxLevel: Level.silly });
+    const spy = getConsoleSpy(logger);
+    logger.silly("Data");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("silly Data");
+  });
+
+  it("capture console log", () => {
+    logger = new LogVault({ captureConsole: true });
+    const spy = getConsoleSpy(logger);
+    console.log("console log");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info console log");
+  });
+
+  it("capture console info", () => {
+    logger = new LogVault({ captureConsole: true });
+    const spy = getConsoleSpy(logger);
+    console.info("console info");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info console info");
+  });
+
+  it("capture console warn", () => {
+    logger = new LogVault({ captureConsole: true });
+    const spy = getConsoleSpy(logger);
+    console.warn("console warn");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("warn console warn");
+  });
+
+  it("capture console error", () => {
+    logger = new LogVault({ captureConsole: true });
+    const spy = getConsoleSpy(logger);
+    console.error("console error");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("error console error");
+  });
+
+  it("capture console table", () => {
+    logger = new LogVault({ captureConsole: true });
+    const spy = getConsoleSpy(logger);
+    console.table([{ a: 1 }]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual(`info 
+┌─────────┬───┐
+│ (index) │ a │
+├─────────┼───┤
+│    0    │ 1 │
+└─────────┴───┘`);
   });
 });
 
@@ -70,7 +212,7 @@ describe("files transport", () => {
     logger.log("This is a test");
 
     const circular: { a: string; content: string | object } = {
-      a: "b\n1",
+      a: "b",
       content: ""
     };
     circular.content = circular;
@@ -88,6 +230,11 @@ describe("files transport", () => {
     expect(parsed).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          labels: {
+            environment: "test",
+            process: "log-vault",
+            project: "log-vault"
+          },
           level: "info",
           message: ["This is a test"],
           timestamp: expect.stringMatching(
@@ -95,6 +242,11 @@ describe("files transport", () => {
           )
         }),
         expect.objectContaining({
+          labels: {
+            environment: "test",
+            process: "log-vault",
+            project: "log-vault"
+          },
           level: "warn",
           message: [
             {
@@ -137,8 +289,36 @@ describe("files transport", () => {
     );
   });
 
+  it("log error to a file", async () => {
+    const logger = new LogVault({ noConsole: true }).withFiles();
+
+    logger.error("Whoops!");
+
+    await wait(50);
+
+    const logFileName = getLogFileName(Level.error);
+    const content = readFileSync(resolve("./logs", logFileName), {
+      encoding: "utf-8"
+    });
+
+    const parsed = parseFileContent(content);
+
+    expect(parsed).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          level: "error",
+          message: ["Whoops!"],
+          timestamp: expect.stringMatching(
+            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
+          )
+        })
+      ])
+    );
+  });
+
   function parseFileContent(content: string): object {
-    const str = "[" + content.replace("}\n{", "},\n{") + "]";
+    let str = "[" + content.replaceAll(/\n/g, ",\n");
+    str = str.slice(0, -2) + "]";
     return JSON.parse(str);
   }
 
@@ -153,6 +333,7 @@ describe("files transport", () => {
 });
 
 describe("loki transport", () => {
+  let output: any;
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -165,39 +346,30 @@ describe("loki transport", () => {
     );
     if (!loki) throw new Error("Couldn't assign Loki transport");
 
-    const spy = jest.spyOn(loki, "log");
+    const spy = jest.spyOn(loki, "log").mockImplementation((data) => {
+      output = data;
+    });
 
     logger.log("Log record");
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith(
-      {
-        level: "info",
-        message: ["Log record"],
-        timestamp: expect.stringMatching(
-          /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-        ),
-        labels: {
-          project: "log-vault",
-          process: "log-vault",
-          environment: "test"
-        },
-        [Symbol.for("level")]: "info",
-        [Symbol.for("message")]: "[\n  'Log record'\n]"
-      },
-      expect.any(Function)
-    );
+    expect(output.level).toEqual("info");
+    expect(output.message).toEqual(["Log record"]);
+    expect(output.labels).toEqual({
+      project: "log-vault",
+      process: "log-vault",
+      environment: "test"
+    });
   });
 });
 
 describe("mongo transport", () => {
   it("log to mongo", async () => {
     const logger = new LogVault({ noConsole: true }).withMongo({
-      db: "mongodb+srv://usr:pwd@cluster0.c9lvsrg.mongodb.net/?retryWrites=true&w=majority",
-      test: true
+      db: "mongodb+srv://usr:pwd@cluster0.c9lvsrg.mongodb.net/?retryWrites=true&w=majority"
     });
 
-    let output = "";
+    let output: any = "";
 
     const mongo = logger.logger.transports.find((t) => t instanceof MongoDB);
     if (!mongo) throw new Error("Failed to instantiate Mongo connection");
@@ -210,17 +382,12 @@ describe("mongo transport", () => {
     logger.logger.remove(mongo);
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(output).toEqual({
-      level: "info",
-      message: ["Hi Mongo"],
-      labels: {
-        project: "log-vault",
-        process: "log-vault",
-        environment: "test"
-      },
-      [Symbol.for("level")]: "info",
-      [Symbol.for("message")]:
-        '{"labels":{"environment":"test","process":"log-vault","project":"log-vault"},"level":"info","message":["Hi Mongo"]}'
+    expect(output.level).toEqual("info");
+    expect(output.message).toEqual(["Hi Mongo"]);
+    expect(output.labels).toEqual({
+      project: "log-vault",
+      process: "log-vault",
+      environment: "test"
     });
   });
 });

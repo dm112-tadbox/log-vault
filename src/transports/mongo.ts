@@ -1,26 +1,33 @@
+import { inspect } from "util";
+import { Labels } from "./../index";
+// import { inspect } from "util";
 import winston from "winston";
-import { Level } from "../types/Level";
+// import { Level } from "../types/Level";
 import "winston-mongodb";
+import { MongoDBConnectionOptions } from "winston-mongodb";
 
-export interface MongoTransportParams {
-  level?: Level;
-  db: string;
-  collection?: string;
-  capped?: boolean;
-  cappedSize?: number; // Size of logs capped collection in bytes, defaults to 10000000
-  cappedMax?: number; // Size of logs capped collection in number of documents
-  expireAfterSeconds?: number; // Seconds before the entry is removed. Works only if capped is not set,
-  test?: boolean;
-}
-
-export function getMongoTransport(
-  params: MongoTransportParams
-): winston.transport {
-  return new winston.transports.MongoDB({
-    ...params,
-    metaKey: "labels",
-    options: {
-      useUnifiedTopology: !params.test
-    }
+export function getMongoTransport({
+  labels,
+  ...params
+}: MongoDBConnectionOptions & { labels: Labels }): winston.transport {
+  const customJson = winston.format((info) => {
+    info.labels = labels;
+    const MESSAGE = Symbol.for("message");
+    if (info.error) info[MESSAGE] = inspect(info.error);
+    else
+      info[MESSAGE] =
+        typeof info.message === "string"
+          ? info.message
+          : inspect(info.message, {
+              compact: false,
+              maxStringLength: 1024,
+              maxArrayLength: 10
+            });
+    return info;
   });
+  params = params || {};
+  params.format = params.format || customJson();
+  params.metaKey = "labels";
+  params.options = params.options || {};
+  return new winston.transports.MongoDB(params);
 }
