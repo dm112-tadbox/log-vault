@@ -13,7 +13,7 @@ export function concatenateMessages(
 
   let stringifiedTotal = "";
 
-  for (let i = 0; i < messages.length; i++) {
+  for (let i = 0; i < messages?.length; i++) {
     const message = messages[i];
     let stringified = "";
     switch (typeof message) {

@@ -18,3 +18,11 @@ Log vault is a library, intended to use in projects where you are required to co
 npm install log-vault
 
 ```
+
+
+# ToDo:
+- write readme
+- fix files transport format (include labels)
+- disable braces for single string message
+- add paddings for console messages format (console.log not producin, logger.log - producing)
+- unlink Loki in case of connection error by the default
