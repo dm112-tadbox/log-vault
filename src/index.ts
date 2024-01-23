@@ -15,10 +15,10 @@ interface LogVaultConstructorOptions {
   maxLevel?: Level;
   project?: string;
   noConsole?: boolean;
-  captureConsole?: boolean;
 }
 
 export type Labels = { [key: string]: string | undefined };
+export { Level } from "./types/Level";
 
 export class LogVault {
   public logger: winston.Logger;
@@ -29,8 +29,7 @@ export class LogVault {
     const {
       maxLevel = Level.info,
       project = projectDirName(),
-      noConsole = false,
-      captureConsole
+      noConsole = false
     } = params || {};
     this.maxLevel = maxLevel;
     this.project = project;
@@ -40,7 +39,6 @@ export class LogVault {
       exitOnError: false
     });
     if (!noConsole) this.withConsole();
-    if (captureConsole) this.captureConsole();
   }
 
   public withConsole(
@@ -70,6 +68,7 @@ export class LogVault {
     console.info = (...args) => {
       return this.logger.info(...args);
     };
+    return this;
   }
 
   public withFiles(params?: DailyRotateFileTransportOptions): LogVault {

@@ -152,7 +152,7 @@ describe("console transport", () => {
   });
 
   it("capture console log", () => {
-    logger = new LogVault({ captureConsole: true });
+    logger = new LogVault().captureConsole();
     const spy = getConsoleSpy(logger);
     console.log("console log");
     expect(spy).toHaveBeenCalledTimes(1);
@@ -160,7 +160,7 @@ describe("console transport", () => {
   });
 
   it("capture console info", () => {
-    logger = new LogVault({ captureConsole: true });
+    logger = new LogVault().captureConsole();
     const spy = getConsoleSpy(logger);
     console.info("console info");
     expect(spy).toHaveBeenCalledTimes(1);
@@ -168,7 +168,7 @@ describe("console transport", () => {
   });
 
   it("capture console warn", () => {
-    logger = new LogVault({ captureConsole: true });
+    logger = new LogVault().captureConsole();
     const spy = getConsoleSpy(logger);
     console.warn("console warn");
     expect(spy).toHaveBeenCalledTimes(1);
@@ -176,7 +176,7 @@ describe("console transport", () => {
   });
 
   it("capture console error", () => {
-    logger = new LogVault({ captureConsole: true });
+    logger = new LogVault().captureConsole();
     const spy = getConsoleSpy(logger);
     console.error("console error");
     expect(spy).toHaveBeenCalledTimes(1);
@@ -184,7 +184,7 @@ describe("console transport", () => {
   });
 
   it("capture console table", () => {
-    logger = new LogVault({ captureConsole: true });
+    logger = new LogVault().captureConsole();
     const spy = getConsoleSpy(logger);
     console.table([{ a: 1 }]);
     expect(spy).toHaveBeenCalledTimes(1);
