@@ -91,6 +91,13 @@ export class LogVault {
 
   public withLoki(params?: LokiTransportOptions): LogVault {
     params = params || {};
+    if (!params.onConnectionError)
+      params.onConnectionError = (e: any) => {
+        this.error(
+          "Failed to connect to Loki. Loki transport will be unlinked from the logger. To enable it, restore the connection and restart the process.\n",
+          e?.stack || e
+        );
+      };
     const lokiTransport = getLokiTransport({
       ...params,
       level: params.level || this.maxLevel,
