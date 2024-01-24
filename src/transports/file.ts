@@ -15,6 +15,9 @@ export function getFileTransport(
     datePattern: params.datePattern || "YYYY-MM-DD",
     format:
       params.format ||
-      winston.format.combine(winston.format.timestamp(), winston.format.json())
+      winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json({ space: 2 })
+      )
   });
 }

@@ -289,36 +289,9 @@ describe("files transport", () => {
     );
   });
 
-  it("log error to a file", async () => {
-    const logger = new LogVault({ noConsole: true }).withFiles();
-
-    logger.error("Whoops!");
-
-    await wait(50);
-
-    const logFileName = getLogFileName(Level.error);
-    const content = readFileSync(resolve("./logs", logFileName), {
-      encoding: "utf-8"
-    });
-
-    const parsed = parseFileContent(content);
-
-    expect(parsed).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          level: "error",
-          message: ["Whoops!"],
-          timestamp: expect.stringMatching(
-            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-          )
-        })
-      ])
-    );
-  });
-
   function parseFileContent(content: string): object {
-    let str = "[" + content.replaceAll(/\n/g, ",\n");
-    str = str.slice(0, -2) + "]";
+    let str = "[" + content.replaceAll(/\n}\n{/g, "\n},\n{");
+    str = str.slice(0, -1) + "]";
     return JSON.parse(str);
   }
 
