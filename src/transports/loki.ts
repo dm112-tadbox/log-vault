@@ -24,16 +24,20 @@ export const getLokiTransport = function (
 ): winston.transport {
   const customJson = winston.format((info) => {
     const MESSAGE = Symbol.for("message");
+    const message =
+      Array.isArray(info.message) && info.message.length === 1
+        ? info.message[0]
+        : info.message;
+    info[MESSAGE] =
+      typeof message === "string"
+        ? message
+        : inspect(message, {
+            compact: false,
+            maxStringLength: 1024,
+            maxArrayLength: 10
+          });
     if (info.error) info[MESSAGE] = inspect(info.error);
-    else
-      info[MESSAGE] =
-        typeof info.message === "string"
-          ? info.message
-          : inspect(info.message, {
-              compact: false,
-              maxStringLength: 1024,
-              maxArrayLength: 10
-            });
+    info.message = info[MESSAGE];
     return info;
   });
 

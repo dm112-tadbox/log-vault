@@ -327,7 +327,7 @@ describe("loki transport", () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output.level).toEqual("info");
-    expect(output.message).toEqual(["Log record"]);
+    expect(output.message).toEqual("Log record");
     expect(output.labels).toEqual({
       project: "log-vault",
       process: "log-vault",
