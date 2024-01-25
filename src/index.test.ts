@@ -1,10 +1,11 @@
 import LokiTransport from "winston-loki";
-import { Level, LogVault } from "./index";
+import { Level, LogVault, Notificator } from "./index";
 import { readFileSync, rmSync } from "fs";
 import { resolve } from "node:path";
 import { MongoDB } from "winston-mongodb";
 import { Console } from "winston/lib/winston/transports";
 import stripColor from "strip-color";
+import { TelegramNotificationChannel } from "./notificator/channels/TelegramNotificationChannel";
 
 describe("console transport", () => {
   let output: any;
@@ -362,6 +363,46 @@ describe("mongo transport", () => {
       process: "log-vault",
       environment: "test"
     });
+  });
+});
+
+describe("notifications transport", () => {
+  it("send log to notification channel", async () => {
+    const logger = new LogVault({ noConsole: true }).withNotifications({
+      jobOptions: {
+        removeOnComplete: {
+          age: 60 * 5, // seconds
+          count: 10 // up to count of jobs
+        }
+      },
+      name: "log-vault-test"
+    });
+    logger.log("New notification");
+    logger.log("New notification");
+    logger.log("New notification");
+
+    /* const notificator = new Notificator({
+      workerOpts: { limiter: { max: 1, duration: 300 } }
+    }); */
+    const notificator = new Notificator({
+      queueName: "log-vault-test",
+      workerOpts: {
+        limiter: {
+          max: 1,
+          duration: 300
+        }
+      }
+    });
+    notificator.add(
+      new TelegramNotificationChannel({
+        queueName: "telegram-errors",
+        patterns: [{ level: "error" }],
+        token: "my_token",
+        chatId: 11111
+      })
+    );
+    notificator.run();
+    await wait(4000);
   });
 });
 

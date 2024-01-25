@@ -27,6 +27,7 @@
   "author": "dm112@tadbox.com",
   "license": "ISC",
   "dependencies": {
+    "bullmq": "^5.1.5",
     "winston": "^3.9.0",
     "winston-daily-rotate-file": "^4.7.1",
     "winston-loki": "^6.0.8",

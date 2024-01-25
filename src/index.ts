@@ -10,6 +10,11 @@ import { getMongoTransport } from "./transports/mongo";
 import { DailyRotateFileTransportOptions } from "winston-daily-rotate-file";
 import { inspect } from "util";
 import { MongoDBConnectionOptions } from "winston-mongodb";
+import {
+  NotificationTransportOptions,
+  getNotificationTransport
+} from "./transports/notifications";
+export { Notificator } from "./notificator";
 
 interface LogVaultConstructorOptions {
   maxLevel?: Level;
@@ -119,6 +124,11 @@ export class LogVault {
     this.logger.add(mongoTransport);
     this.logger.exceptions.handle(mongoTransport);
     this.logger.rejections.handle(mongoTransport);
+    return this;
+  }
+
+  public withNotifications(opts?: NotificationTransportOptions): LogVault {
+    this.logger.add(getNotificationTransport(opts));
     return this;
   }
 
