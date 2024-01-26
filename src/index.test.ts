@@ -395,7 +395,6 @@ describe("notifications transport", () => {
     });
     notificator.add(
       new TelegramNotificationChannel({
-        queueName: "telegram-errors",
         patterns: [{ level: "error" }],
         token: "my_token",
         chatId: 11111

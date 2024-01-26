@@ -10,7 +10,7 @@ export interface TelegramNotificationChannelOpts
   chatId: number;
   host?: string;
   template?: string;
-  workerOptions: Partial<WorkerOptions>;
+  workerOptions?: Partial<WorkerOptions>;
 }
 
 export class TelegramNotificationChannel extends NotificationChannel {

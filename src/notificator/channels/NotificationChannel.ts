@@ -25,14 +25,14 @@ export interface NotificationChannelOpts {
 
 export interface NotificationChannelProcessOpts {
   processor: Processor;
-  workerOptions: Partial<WorkerOptions>;
+  workerOptions?: Partial<WorkerOptions>;
   queueName: string;
   queueOptions?: Partial<QueueOptions>; // optional
   jobOptions?: RedisJobOptions; // optional
 }
 
 export class NotificationChannel extends EventEmitter {
-  private patterns: SearchPattern[];
+  public patterns: SearchPattern[];
   private queue?: Queue;
   private worker?: Worker;
   private processor: Processor = async (job: Job) => {
@@ -49,7 +49,7 @@ export class NotificationChannel extends EventEmitter {
   protected process(opts: NotificationChannelProcessOpts): NotificationChannel {
     const {
       processor,
-      workerOptions,
+      workerOptions = {},
       queueName,
       queueOptions = {},
       jobOptions = {}

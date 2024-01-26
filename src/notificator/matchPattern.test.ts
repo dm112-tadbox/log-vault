@@ -4,7 +4,6 @@ import { matchPattern } from "./matchPattern";
 describe("match log patterns", () => {
   it("match anything by empty pattern by the default", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [{}]
     });
 
@@ -24,7 +23,6 @@ describe("match log patterns", () => {
 
   it("match anything by empty patterns array", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: []
     });
 
@@ -44,7 +42,6 @@ describe("match log patterns", () => {
 
   it("match by level", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           level: "info"
@@ -68,7 +65,6 @@ describe("match log patterns", () => {
 
   it("dismatch by level", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           level: "error"
@@ -92,7 +88,6 @@ describe("match log patterns", () => {
 
   it("match by a single label", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           process: "log-vault-process"
@@ -116,7 +111,6 @@ describe("match log patterns", () => {
 
   it("dismatch by a single label", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           project: "another project"
@@ -140,7 +134,6 @@ describe("match log patterns", () => {
 
   it("dismatch by a single missing label", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           some: "another project"
@@ -164,7 +157,6 @@ describe("match log patterns", () => {
 
   it("match by several labels", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           project: "log-vault",
@@ -190,7 +182,6 @@ describe("match log patterns", () => {
 
   it("dismatch by a label in several labels", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           project: "log-vault",
@@ -216,7 +207,6 @@ describe("match log patterns", () => {
 
   it("match by label and level", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           level: "info",
@@ -241,7 +231,6 @@ describe("match log patterns", () => {
 
   it("match by label dismatch by level", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           level: "info",
@@ -266,7 +255,6 @@ describe("match log patterns", () => {
 
   it("match by level dismatch by label", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           level: "info",
@@ -291,7 +279,6 @@ describe("match log patterns", () => {
 
   it("match by level dismatch by missing label", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           level: "info",
@@ -315,7 +302,6 @@ describe("match log patterns", () => {
 
   it("match by message text", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           message: "New"
@@ -338,7 +324,6 @@ describe("match log patterns", () => {
 
   it("dismatch by message text", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           message: "Some"
@@ -361,7 +346,6 @@ describe("match log patterns", () => {
 
   it("match by message regexp", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           message: /New\snotification/g
@@ -384,7 +368,6 @@ describe("match log patterns", () => {
 
   it("dismatch by empty message", () => {
     const channel = new NotificationChannel({
-      queueName: "test-queue",
       patterns: [
         {
           message: /New\snotification/g
