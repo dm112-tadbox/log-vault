@@ -6,6 +6,7 @@ import {
 import axios from "axios";
 import { render } from "mustache";
 import { LogRecord } from "../../types/LogRecord";
+import { Labels } from "../..";
 
 export interface TelegramNotificationChannelOpts
   extends NotificationChannelOpts {
@@ -16,11 +17,20 @@ export interface TelegramNotificationChannelOpts
   workerOptions?: Partial<WorkerOptions>;
 }
 
-const basicTemplate = `{{emojiLevel}} {{level}}
-*environment*: {{labels.environment}}
+const basicTemplate = `{{emojiLevel}} *{{level}} log message*
+
+{{#labels.project}}*project*: {{labels.project}}{{/labels.project}}{{#labels.environment}}
+*environment*: {{labels.environment}}{{/labels.environment}}{{#labels.process}}
+*process*: {{labels.process}}{{/labels.process}}{{#labels.method}}
+*method*: {{labels.method}}{{/labels.method}}{{#labels.user}}
+*user*: {{labels.user}}{{/labels.user}}
+
 \`\`\`
 {{message}}
 \`\`\`
+{{#timestamp}}
+⏱ _{{timestamp}}_
+{{/timestamp}}
 `;
 
 const emojiLevels = [
@@ -34,7 +44,31 @@ const emojiLevels = [
 ];
 
 function getEmojiLevel(level: string) {
-  return Object.keys(emojiLevels).includes(level) ? emojiLevels[level] : "🐤";
+  const item = emojiLevels.find((item) => item.level === level);
+  return item?.emoji || "🔵";
+}
+
+function renderLogMessage(template: string, log: LogRecord) {
+  const { level, message, timestamp, labels } = log;
+  const unescaped: LogRecord = {
+    level: unescape(level),
+    message: unescape(message),
+    timestamp: unescape(timestamp),
+    labels: {}
+  };
+  for (const key of Object.keys(labels)) {
+    unescaped.labels[key as keyof Labels] = unescape(labels[key]);
+  }
+
+  return render(template, {
+    ...unescaped,
+    emojiLevel: getEmojiLevel(log.level)
+  });
+
+  function unescape(str?: string) {
+    // eslint-disable-next-line no-useless-escape
+    return str?.replace(/([|{\[\]*_~}+)(#>!=\-.])/gm, "\\$1") || "";
+  }
 }
 
 export class TelegramNotificationChannel extends NotificationChannel {
@@ -61,27 +95,21 @@ export class TelegramNotificationChannel extends NotificationChannel {
             url: "sendMessage",
             data: {
               chat_id: chatId,
-              text: render(template, {
-                ...log,
-                emojiLevel: getEmojiLevel[log.level]
-              }),
+              text: renderLogMessage(template, log),
               parse_mode: "MarkdownV2"
             }
           });
         } catch (error) {
           console.error(error);
         }
-        console.log("Sending to TG:\n", job.data);
         return job.data;
       },
       workerOptions: {
         ...workerOptions,
-        ...(!workerOptions.limiter && {
-          limiter: {
-            max: 1,
-            duration: 5000
-          }
-        })
+        limiter: workerOptions?.limiter || {
+          max: 1,
+          duration: 5000
+        }
       }
     });
   }

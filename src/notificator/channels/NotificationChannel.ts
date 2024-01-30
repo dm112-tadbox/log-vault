@@ -46,7 +46,6 @@ export class NotificationChannel extends EventEmitter {
   private queue?: Queue;
   private worker?: Worker;
   private processor: Processor = async (job: Job) => {
-    // console.warn("NotificationChannel class should not be in use directly");
     this.emit("processed", job.data);
   };
   private jobOptions?: RedisJobOptions;
@@ -89,5 +88,9 @@ export class NotificationChannel extends EventEmitter {
 
   public async addToQueue(log: any): Promise<void> {
     await this.queue?.add(uuid(), log, this.jobOptions);
+  }
+
+  public async stop() {
+    await this.queue?.close();
   }
 }

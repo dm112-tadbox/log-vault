@@ -38,7 +38,7 @@ notificator.add(tgErrorsChannel)
 */
 
 export interface NotificatorConstructorOptions {
-  queueName: string;
+  queueName?: string;
   workerOpts?: Partial<WorkerOptions>;
 }
 
@@ -52,7 +52,6 @@ export class Notificator {
     this.worker = new Worker(
       queueName,
       async (job: Job) => {
-        // console.log(job.data);
         const matchedChannels = matchPattern(job.data, this.channels);
 
         return Promise.all(matchedChannels.map((c) => c.addToQueue(job.data)));
@@ -60,11 +59,7 @@ export class Notificator {
       {
         ...workerOpts,
         connection: workerOpts?.connection || redisDefault,
-        autorun: !!workerOpts?.autorun,
-        limiter: workerOpts?.limiter || {
-          max: 1,
-          duration: 5000
-        }
+        autorun: !!workerOpts?.autorun
       }
     );
 
@@ -79,7 +74,13 @@ export class Notificator {
     return this;
   }
 
-  public add(channel: NotificationChannel) {
+  public async stop(): Promise<Notificator> {
+    await this.worker.close();
+    return this;
+  }
+
+  public add(channel: NotificationChannel): Notificator {
     this.channels.push(channel);
+    return this;
   }
 }
