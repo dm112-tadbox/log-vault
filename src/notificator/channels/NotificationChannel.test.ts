@@ -5,7 +5,7 @@ import {
 } from "./NotificationChannel";
 
 describe("NotificationChannel class", () => {
-  it("notification channel", async () => {
+  it("main notification channel class", async () => {
     class TestChannel extends NotificationChannel {
       constructor(opts: NotificationChannelOpts) {
         super(opts);
@@ -20,7 +20,7 @@ describe("NotificationChannel class", () => {
     const testChannel = new TestChannel({ patterns: [] });
 
     testChannel.addToQueue("something");
-    const res = await waitForProcess("test-notification-channel");
+    const res = await waitForProcess("test-channel-queue");
     expect(res).toEqual("something");
   });
 });

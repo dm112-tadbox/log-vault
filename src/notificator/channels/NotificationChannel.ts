@@ -31,6 +31,16 @@ export interface NotificationChannelProcessOpts {
   jobOptions?: RedisJobOptions; // optional
 }
 
+export interface JobData {
+  level: string;
+  labels: {
+    process?: string;
+    method?: string;
+    environment?: string;
+    user?: string;
+  };
+}
+
 export class NotificationChannel extends EventEmitter {
   public patterns: SearchPattern[];
   private queue?: Queue;
