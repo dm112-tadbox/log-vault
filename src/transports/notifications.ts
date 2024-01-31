@@ -59,6 +59,8 @@ export function getNotificationTransport(
   if (options?.handleExceptions !== false) options.handleExceptions = true;
   if (options?.handleRejections !== false) options.handleRejections = true;
   if (!options?.format)
-    options.format = winston.format.combine(winston.format.timestamp());
+    options.format = winston.format.combine(
+      winston.format.timestamp({ format: "DD MMM YYYY HH:mm:ss (Z)" })
+    );
   return new NotificationTransport(options);
 }

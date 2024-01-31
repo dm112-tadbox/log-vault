@@ -20,7 +20,7 @@ describe("TelegramNotificationChannel class", () => {
   it("TelegramNotificationChannel", async () => {
     const telegramChannel = new TelegramNotificationChannel({
       host: `http://localhost:${mockPort}`,
-      token: "testtoken",
+      token: "unittesttoken",
       chatId: 1,
       patterns: []
     });
@@ -35,7 +35,7 @@ describe("TelegramNotificationChannel class", () => {
         project: "LogVault"
       }
     });
-    const processed = await waitForProcess("testtoken:1");
+    const processed = await waitForProcess("unittesttoken:1");
 
     expect(processed).toEqual({
       labels: {
@@ -53,14 +53,14 @@ describe("TelegramNotificationChannel class", () => {
       text:
         "🔴 *error log message*\n" +
         "\n" +
+        "⏱ _2024\\-01\\-30T11:47:03\\.633Z_\n" +
         "*project*: LogVault\n" +
         "*environment*: test\n" +
         "*process*: some\\-service\n" +
         "\n" +
-        "```\n" +
-        "An error appear\\!\n" +
-        "```\n" +
-        "⏱ _2024\\-01\\-30T11:47:03\\.633Z_\n",
+        "```json\n" +
+        "'An error appear!'\n" +
+        "```\n",
       parse_mode: "MarkdownV2"
     });
   });

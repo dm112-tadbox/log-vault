@@ -14,6 +14,7 @@ import {
   removeOnFailDefault
 } from "../../defaults/jobs";
 import { EventEmitter } from "node:stream";
+import { InspectOptions } from "node:util";
 
 export interface SearchPattern {
   [key: string]: string | RegExp;
@@ -21,6 +22,7 @@ export interface SearchPattern {
 
 export interface NotificationChannelOpts {
   patterns: SearchPattern[];
+  inspectOptions?: InspectOptions;
 }
 
 export interface NotificationChannelProcessOpts {
@@ -49,10 +51,23 @@ export class NotificationChannel extends EventEmitter {
     this.emit("processed", job.data);
   };
   private jobOptions?: RedisJobOptions;
+  protected inspectOptions?: InspectOptions;
 
-  constructor({ patterns = [] }: NotificationChannelOpts) {
+  constructor({ patterns = [], inspectOptions = {} }: NotificationChannelOpts) {
     super();
     this.patterns = patterns;
+
+    const {
+      depth = 3,
+      maxArrayLength = 10,
+      maxStringLength = 1024
+    } = inspectOptions;
+    this.inspectOptions = {
+      ...inspectOptions,
+      maxArrayLength,
+      maxStringLength,
+      depth
+    };
   }
 
   protected process(opts: NotificationChannelProcessOpts): NotificationChannel {

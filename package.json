@@ -1,14 +1,14 @@
 {
   "name": "log-vault",
-  "version": "1.1.12",
+  "version": "1.2",
   "description": "Log vault is a library, intended to use in projects where you are required to collect, store and structure the logs, produced by your nodejs process",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "watch": "babel src --out-dir ./dist --source-maps --watch",
-    "test": "jest --forceExit --verbose --runInBand",
-    "test:watch": "jest --watch --forceExit --verbose --runInBand",
+    "test": "jest --forceExit --runInBand",
+    "test:watch": "jest --watch --forceExit --runInBand",
     "test:coverage": "jest --coverage",
     "lint": "eslint --fix . --ext .ts",
     "prepublish": "tsc"

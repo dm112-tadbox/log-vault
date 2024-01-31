@@ -6,7 +6,7 @@ import {
 import axios from "axios";
 import { render } from "mustache";
 import { LogRecord } from "../../types/LogRecord";
-import { Labels } from "../..";
+import { InspectOptions, inspect } from "node:util";
 
 export interface TelegramNotificationChannelOpts
   extends NotificationChannelOpts {
@@ -19,18 +19,18 @@ export interface TelegramNotificationChannelOpts
 
 const basicTemplate = `{{emojiLevel}} *{{level}} log message*
 
+{{#timestamp}}
+⏱ _{{timestamp}}_
+{{/timestamp}}
 {{#labels.project}}*project*: {{labels.project}}{{/labels.project}}{{#labels.environment}}
 *environment*: {{labels.environment}}{{/labels.environment}}{{#labels.process}}
 *process*: {{labels.process}}{{/labels.process}}{{#labels.method}}
 *method*: {{labels.method}}{{/labels.method}}{{#labels.user}}
 *user*: {{labels.user}}{{/labels.user}}
 
+\`\`\`json
+{{{message}}}
 \`\`\`
-{{message}}
-\`\`\`
-{{#timestamp}}
-⏱ _{{timestamp}}_
-{{/timestamp}}
 `;
 
 const emojiLevels = [
@@ -48,26 +48,39 @@ function getEmojiLevel(level: string) {
   return item?.emoji || "🔵";
 }
 
-function renderLogMessage(template: string, log: LogRecord) {
+function renderLogMessage(
+  template: string,
+  log: LogRecord,
+  inspectOptions: InspectOptions
+) {
   const { level, message, timestamp, labels } = log;
-  const unescaped: LogRecord = {
+  const unescaped: {
+    level: string;
+    message: string;
+    timestamp?: string;
+    labels: {
+      [key: string]: string;
+    };
+  } = {
     level: unescape(level),
-    message: unescape(message),
+    message: inspect(message, inspectOptions),
     timestamp: unescape(timestamp),
     labels: {}
   };
+
   for (const key of Object.keys(labels)) {
-    unescaped.labels[key as keyof Labels] = unescape(labels[key]);
+    unescaped.labels[key] = unescape(labels[key]);
   }
 
-  return render(template, {
+  const rendered = render(template, {
     ...unescaped,
     emojiLevel: getEmojiLevel(log.level)
   });
 
+  return rendered;
+
   function unescape(str?: string) {
-    // eslint-disable-next-line no-useless-escape
-    return str?.replace(/([|{\[\]*_~}+)(#>!=\-.])/gm, "\\$1") || "";
+    return str?.replace(/([|{[\]*_~}+)(#>!=\-.])/gm, "\\$1") || "";
   }
 }
 
@@ -95,7 +108,7 @@ export class TelegramNotificationChannel extends NotificationChannel {
             url: "sendMessage",
             data: {
               chat_id: chatId,
-              text: renderLogMessage(template, log),
+              text: renderLogMessage(template, log, this.inspectOptions || {}),
               parse_mode: "MarkdownV2"
             }
           });

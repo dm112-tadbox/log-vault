@@ -1,21 +1,31 @@
 import winston from "winston";
-import { concatenateMessages } from "../util/concatenateMessages";
-import { inspect } from "node:util";
+import { InspectOptions, inspect } from "node:util";
 import { defaultColors } from "../defaults/colors";
 
+export interface consoleTransportParams
+  extends winston.transports.ConsoleTransportOptions {
+  inspectOptions: InspectOptions;
+}
+
 export const getConsoleTransport = function (
-  params?: winston.transports.ConsoleTransportOptions
+  params: consoleTransportParams
 ): winston.transport {
   winston.addColors(defaultColors);
-
+  const inspectOptions: InspectOptions = {
+    ...params.inspectOptions,
+    colors: true
+  };
   const { timestamp, printf } = winston.format;
   const consoleFormat = printf((opts) => {
     const { level, message, timestamp, error } = opts;
     let output = `${timestamp} ${level} `;
-    if (error) return output + inspect(error, { colors: true });
-    if (typeof message === "string")
-      output += Array.from(message)[0] === "┌" ? "\n" + message : message;
-    else output += concatenateMessages(message);
+    if (error) return output + inspect(error, inspectOptions);
+    if (typeof message[0] === "string" && Array.from(message[0])[0] === "┌")
+      output += "\n"; // for console.table
+    output +=
+      message.length === 1 && typeof message[0] !== "object"
+        ? message
+        : inspect(message, inspectOptions);
     return output;
   });
 
