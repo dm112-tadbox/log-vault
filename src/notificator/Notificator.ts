@@ -3,40 +3,6 @@ import { redisDefault } from "../defaults/connections";
 import { NotificationChannel } from "./channels/NotificationChannel";
 import { matchPattern } from "./matchPattern";
 
-/* 
-const logger = new LogVault({ noConsole: true }).withNotifications({
-  jobOptions: {
-    removeOnComplete: {
-      age: 60 * 5, // seconds
-      count: 10 // up to count of jobs
-    }
-  },
-  name: "log-vault-test"
-});
-
-const tgErrorsChannel = new telegramNotificationChannel({
-  token: "%TOKEN%",             // required
-    chatId: "%CHAT_ID%",          // required
-    queueName: "unique-name",     // required
-    patterns: [
-      {
-        level: "error",
-        message: \.*\g
-      }
-    ]
-    template: ""                  // optional
-    baseUrl: "",                  // optional
-    queueOptions,                 // optional
-    jobOptions                    // optional
-    WorkerOptions                 // optional
-  })
-})
-
-const notificator = new Notificator()
-notificator.add(tgErrorsChannel)
-
-*/
-
 export interface NotificatorConstructorOptions {
   queueName?: string;
   workerOpts?: Partial<WorkerOptions>;
