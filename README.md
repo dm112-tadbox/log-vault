@@ -22,3 +22,4 @@ npm install log-vault
 
 # ToDo:
 - write readme
+- export default LogVault

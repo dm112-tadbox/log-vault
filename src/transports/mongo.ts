@@ -1,32 +1,22 @@
-import { inspect } from "util";
-import { Labels } from "./../index";
+import { InspectOptions } from "util";
+import { Labels } from "../LogVault";
 // import { inspect } from "util";
 import winston from "winston";
 // import { Level } from "../types/Level";
 import "winston-mongodb";
 import { MongoDBConnectionOptions } from "winston-mongodb";
+import { customInspect } from "../formats/customInspect";
 
 export function getMongoTransport({
-  labels,
+  // labels,
+  inspectOptions,
   ...params
-}: MongoDBConnectionOptions & { labels: Labels }): winston.transport {
-  const customJson = winston.format((info) => {
-    info.labels = labels;
-    const MESSAGE = Symbol.for("message");
-    if (info.error) info[MESSAGE] = inspect(info.error);
-    else
-      info[MESSAGE] =
-        typeof info.message === "string"
-          ? info.message
-          : inspect(info.message, {
-              compact: false,
-              maxStringLength: 1024,
-              maxArrayLength: 10
-            });
-    return info;
-  });
+}: MongoDBConnectionOptions & {
+  labels: Labels;
+  inspectOptions?: InspectOptions;
+}): winston.transport {
   params = params || {};
-  params.format = params.format || customJson();
+  params.format = params.format || customInspect(inspectOptions);
   params.metaKey = "labels";
   params.options = params.options || {};
   return new winston.transports.MongoDB(params);

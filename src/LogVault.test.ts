@@ -1,10 +1,14 @@
 import LokiTransport from "winston-loki";
-import { Level, LogVault } from "./index";
+import { Level, LogVault, Notificator } from "./index";
 import { readFileSync, rmSync } from "fs";
 import { resolve } from "node:path";
 import { MongoDB } from "winston-mongodb";
 import { Console } from "winston/lib/winston/transports";
 import stripColor from "strip-color";
+import bodyParser from "body-parser";
+import express from "express";
+import { waitForProcess } from "./notificator/channels/NotificationChannel.test";
+import { TelegramNotificationChannel } from "./notificator/channels/TelegramNotificationChannel";
 
 describe("console transport", () => {
   let output: any;
@@ -62,7 +66,7 @@ describe("console transport", () => {
     logger.log("First", "Second");
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(output).toEqual("info First, Second");
+    expect(output).toEqual("info [\n  'First',\n  'Second'\n]");
   });
 
   it("logger log an object", () => {
@@ -72,7 +76,7 @@ describe("console transport", () => {
     logger.log({ foo: "bar" });
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(output).toEqual("info \n{\n  foo: 'bar'\n}");
+    expect(output).toEqual("info [\n  {\n    foo: 'bar'\n  }\n]");
   });
 
   it("logger log different entities", () => {
@@ -82,7 +86,7 @@ describe("console transport", () => {
     logger.log("this is an object:", { some: "data" }, [1, 2]);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual(
-      "info this is an object:, \n{\n  some: 'data'\n},\n\n[\n  1,\n  2\n]"
+      "info [\n  'this is an object:',\n  {\n    some: 'data'\n  },\n  [\n    1,\n    2\n  ]\n]"
     );
   });
 
@@ -100,7 +104,9 @@ describe("console transport", () => {
     logger.log(circular);
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(output).toEqual("info \n<ref *1> {\n  b: [Circular *1]\n}");
+    expect(output).toEqual(
+      "info [\n  <ref *1> {\n    b: [Circular *1]\n  }\n]"
+    );
   });
 
   it("logger error", () => {
@@ -159,6 +165,17 @@ describe("console transport", () => {
     expect(output).toEqual("info console log");
   });
 
+  it("capture console different entities", () => {
+    logger = new LogVault().captureConsole();
+    const spy = getConsoleSpy(logger);
+
+    console.log("this is an object:", { some: "data" }, [1, 2]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual(
+      "info [\n  'this is an object:',\n  {\n    some: 'data'\n  },\n  [\n    1,\n    2\n  ]\n]"
+    );
+  });
+
   it("capture console info", () => {
     logger = new LogVault().captureConsole();
     const spy = getConsoleSpy(logger);
@@ -188,12 +205,9 @@ describe("console transport", () => {
     const spy = getConsoleSpy(logger);
     console.table([{ a: 1 }]);
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(output).toEqual(`info 
-┌─────────┬───┐
-│ (index) │ a │
-├─────────┼───┤
-│    0    │ 1 │
-└─────────┴───┘`);
+    expect(output).toEqual(
+      `info \n┌─────────┬───┐\n│ (index) │ a │\n├─────────┼───┤\n│    0    │ 1 │\n└─────────┴───┘`
+    );
   });
 });
 
@@ -346,6 +360,7 @@ describe("mongo transport", () => {
 
     const mongo = logger.logger.transports.find((t) => t instanceof MongoDB);
     if (!mongo) throw new Error("Failed to instantiate Mongo connection");
+
     const spy = jest.spyOn(mongo, "log").mockImplementation((data) => {
       output = data;
     });
@@ -356,13 +371,85 @@ describe("mongo transport", () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output.level).toEqual("info");
-    expect(output.message).toEqual(["Hi Mongo"]);
+    expect(output.message).toEqual("Hi Mongo");
     expect(output.labels).toEqual({
       project: "log-vault",
       process: "log-vault",
       environment: "test"
     });
   });
+});
+
+describe("notifications", () => {
+  let tgRequestBody: any;
+  let mockServer: any;
+  const mockPort = 7625;
+
+  it("send log to notification channel", async () => {
+    const logger = new LogVault({ noConsole: true }).withNotifications({
+      name: "log-vault-test"
+    });
+
+    await startMockServer();
+
+    const notificator = new Notificator({
+      queueName: "log-vault-test",
+      workerOpts: {
+        limiter: {
+          max: 1,
+          duration: 300
+        }
+      }
+    });
+    notificator.add(
+      new TelegramNotificationChannel({
+        host: `http://localhost:${mockPort}`,
+        token: "testtoken",
+        chatId: 1,
+        patterns: []
+      })
+    );
+    notificator.run();
+
+    logger.log("New log message");
+
+    const processed = await waitForProcess("testtoken:1");
+
+    const timestamp = processed.timestamp.replace(
+      /([|{[\]*_~}+)(#>!=\-.])/gm,
+      "\\$1"
+    );
+
+    expect(tgRequestBody).toEqual({
+      chat_id: 1,
+      text:
+        "🟢 *info log message*\n" +
+        "\n" +
+        `⏱ _${timestamp}_\n` +
+        "*project*: log\\-vault\n" +
+        "*environment*: test\n" +
+        "*process*: log\\-vault\n" +
+        "\n" +
+        "```json\n" +
+        "[ 'New log message' ]\n" +
+        "```\n",
+      parse_mode: "MarkdownV2"
+    });
+
+    mockServer.close();
+  });
+
+  function startMockServer() {
+    return new Promise((resolve) => {
+      const app = express();
+      app.use(bodyParser.json());
+      app.post("/*/sendMessage", (req, res): express.Response => {
+        tgRequestBody = req.body;
+        return res.status(200).end();
+      });
+      mockServer = app.listen(mockPort, () => resolve(true));
+    });
+  }
 });
 
 function wait(ms: number): Promise<void> {
