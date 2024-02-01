@@ -268,6 +268,10 @@ const basicTemplate = `{{emojiLevel}} *{{level}} log message*
 \`\`\``;
 ```
 
+Alarm Telegram message with default template example:
+
+<screenshot>![Screenshot](https://raw.githubusercontent.com/dm112-tadbox/log-vault/master/doc/images/Screenshot_20240201_224352_Telegram.png)</screenshot>
+
 <style>
   error {
     color: red;
@@ -305,6 +309,11 @@ const basicTemplate = `{{emojiLevel}} *{{level}} log message*
   terminal {
     font-family: Monospace;
     white-space: break-spaces!important;
+  }
+
+  screenshot {
+    display: block;
+    max-width: 320px;
   }
 
 </style>
