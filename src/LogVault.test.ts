@@ -466,6 +466,63 @@ describe("notifications", () => {
     mockServer.close();
   });
 
+  it("send log to notification channel - match by message", async () => {
+    const logger = new LogVault({ noConsole: true }).withNotifications({
+      name: "log-vault-test"
+    });
+
+    await startMockServer();
+
+    const notificator = new Notificator({
+      queueName: "log-vault-test",
+      workerOpts: {
+        limiter: {
+          max: 1,
+          duration: 300
+        }
+      }
+    });
+    notificator.add(
+      new TelegramNotificationChannel({
+        host: `http://localhost:${mockPort}`,
+        token: "testtoken",
+        chatId: 1,
+        patterns: [
+          {
+            message: /Log/i
+          }
+        ]
+      })
+    );
+    notificator.run();
+
+    logger.log("New log message");
+
+    const processed = await waitForProcess("testtoken:1");
+
+    const timestamp = processed.timestamp.replace(
+      /([|{[\]*_~}+)(#>!=\-.])/gm,
+      "\\$1"
+    );
+
+    expect(tgRequestBody).toEqual({
+      chat_id: 1,
+      text:
+        "🟢 *info log message*\n" +
+        "\n" +
+        `⏱ _${timestamp}_\n` +
+        "*project*: log\\-vault\n" +
+        "*environment*: test\n" +
+        "*process*: log\\-vault\n" +
+        "```json\n" +
+        "New log message\n" +
+        "```",
+      parse_mode: "MarkdownV2"
+    });
+
+    mockServer.close();
+  });
+
   function startMockServer() {
     return new Promise((resolve) => {
       const app = express();
