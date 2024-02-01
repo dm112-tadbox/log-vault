@@ -346,6 +346,36 @@ describe("loki transport", () => {
       environment: "test"
     });
   });
+
+  it("log with details", async () => {
+    const logger = new LogVault({ noConsole: true }).withLoki();
+
+    const loki = logger.logger.transports.find(
+      (t) => t instanceof LokiTransport
+    );
+    if (!loki) throw new Error("Couldn't assign Loki transport");
+
+    const spy = jest.spyOn(loki, "log").mockImplementation((data) => {
+      output = data;
+    });
+
+    logger.logWithDetails({
+      message: { foo: "bar" },
+      labels: {
+        customLabel: "hey"
+      },
+      level: Level.warn
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output.message).toEqual("{\n  foo: 'bar'\n}");
+    expect(output.labels).toEqual({
+      project: "log-vault",
+      process: "log-vault",
+      environment: "test",
+      customLabel: "hey"
+    });
+  });
 });
 
 describe("mongo transport", () => {
