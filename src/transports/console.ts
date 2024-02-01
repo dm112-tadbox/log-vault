@@ -1,6 +1,7 @@
 import winston from "winston";
 import { InspectOptions, inspect } from "node:util";
 import { defaultColors } from "../defaults/colors";
+import { timestampDefault } from "../defaults/timestamp";
 
 export interface consoleTransportParams
   extends winston.transports.ConsoleTransportOptions {
@@ -32,7 +33,7 @@ export const getConsoleTransport = function (
   return new winston.transports.Console({
     ...params,
     format: winston.format.combine(
-      timestamp(),
+      timestamp({ format: timestampDefault }),
       winston.format.colorize(),
       consoleFormat
     ),

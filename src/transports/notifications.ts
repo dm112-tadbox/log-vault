@@ -13,7 +13,6 @@ import { InspectOptions } from "node:util";
 export interface NotificationTransportOptions
   extends Transport.TransportStreamOptions {
   name?: string;
-  opts?: QueueOptions;
   queueOptions?: QueueOptions;
   jobOptions?: RedisJobOptions;
   labels: Labels;

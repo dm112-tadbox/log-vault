@@ -20,10 +20,10 @@ describe("console transport", () => {
     return jest.spyOn(consoleTransport, "log").mockImplementation((data) => {
       const decolorized = stripColor(data[Symbol.for("message")]);
       const matched = decolorized.match(
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z\s(.*)$/s
+        /^\d{2}\s[A-z]{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s\([+-]*\d{2}:\d{2}\)\s(.*)$/s
       );
       if (!matched) throw new Error("No match found in output");
-      output = matched[2];
+      output = matched[1];
     });
   }
 
