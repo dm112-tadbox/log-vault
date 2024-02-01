@@ -99,7 +99,7 @@ export class LogVault {
     return this;
   }
 
-  public withLoki(params?: LokiTransportOptions): LogVault {
+  public withLoki(params?: Partial<LokiTransportOptions>): LogVault {
     params = params || {};
     if (!params.onConnectionError)
       params.onConnectionError = (e: any) => {
@@ -133,8 +133,18 @@ export class LogVault {
     return this;
   }
 
-  public withNotifications(opts?: NotificationTransportOptions): LogVault {
-    this.logger.add(getNotificationTransport(opts));
+  public withNotifications(
+    opts?: Partial<NotificationTransportOptions>
+  ): LogVault {
+    this.logger.add(
+      getNotificationTransport({
+        ...opts,
+        labels: {
+          ...this.labels,
+          ...opts?.labels
+        }
+      })
+    );
     return this;
   }
 

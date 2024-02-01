@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import express from "express";
 import { waitForProcess } from "./notificator/channels/NotificationChannel.test";
 import { TelegramNotificationChannel } from "./notificator/channels/TelegramNotificationChannel";
+import { timestampDefaultRegexp } from "./defaults/timestamp";
 
 describe("console transport", () => {
   let output: any;
@@ -251,9 +252,10 @@ describe("files transport", () => {
           },
           level: "info",
           message: ["This is a test"],
-          timestamp: expect.stringMatching(
+          /* timestamp: expect.stringMatching(
             /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-          )
+          ) */
+          timestamp: expect.stringMatching(timestampDefaultRegexp)
         }),
         expect.objectContaining({
           labels: {
@@ -268,9 +270,7 @@ describe("files transport", () => {
               content: "[Circular]"
             }
           ],
-          timestamp: expect.stringMatching(
-            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-          )
+          timestamp: expect.stringMatching(timestampDefaultRegexp)
         })
       ])
     );
@@ -295,9 +295,7 @@ describe("files transport", () => {
         expect.objectContaining({
           level: "error",
           message: ["Whoops!"],
-          timestamp: expect.stringMatching(
-            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-          )
+          timestamp: expect.stringMatching(timestampDefaultRegexp)
         })
       ])
     );
@@ -346,6 +344,36 @@ describe("loki transport", () => {
       project: "log-vault",
       process: "log-vault",
       environment: "test"
+    });
+  });
+
+  it("log with details", async () => {
+    const logger = new LogVault({ noConsole: true }).withLoki();
+
+    const loki = logger.logger.transports.find(
+      (t) => t instanceof LokiTransport
+    );
+    if (!loki) throw new Error("Couldn't assign Loki transport");
+
+    const spy = jest.spyOn(loki, "log").mockImplementation((data) => {
+      output = data;
+    });
+
+    logger.logWithDetails({
+      message: { foo: "bar" },
+      labels: {
+        customLabel: "hey"
+      },
+      level: Level.warn
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output.message).toEqual("{\n  foo: 'bar'\n}");
+    expect(output.labels).toEqual({
+      project: "log-vault",
+      process: "log-vault",
+      environment: "test",
+      customLabel: "hey"
     });
   });
 });
@@ -429,10 +457,9 @@ describe("notifications", () => {
         "*project*: log\\-vault\n" +
         "*environment*: test\n" +
         "*process*: log\\-vault\n" +
-        "\n" +
         "```json\n" +
-        "[ 'New log message' ]\n" +
-        "```\n",
+        "New log message\n" +
+        "```",
       parse_mode: "MarkdownV2"
     });
 

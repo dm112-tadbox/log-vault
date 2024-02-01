@@ -2,7 +2,7 @@ import { InspectOptions } from "node:util";
 
 export const inspectOptions: InspectOptions = {
   compact: false,
-  maxArrayLength: 10,
-  maxStringLength: 1024,
+  maxArrayLength: 5,
+  maxStringLength: 512,
   depth: 3
 };

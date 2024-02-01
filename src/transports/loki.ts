@@ -3,6 +3,7 @@ import TransportStream from "winston-transport";
 import { InspectOptions } from "node:util";
 import WinstonLokiTransport from "winston-loki";
 import { customInspect } from "../formats/customInspect";
+import { Labels } from "../LogVault";
 
 export interface LokiTransportOptions
   extends TransportStream.TransportStreamOptions {
@@ -12,7 +13,7 @@ export interface LokiTransportOptions
   interval?: number;
   json?: boolean;
   batching?: boolean;
-  labels?: object;
+  labels: Labels;
   clearOnError?: boolean;
   replaceTimestamp?: boolean;
   gracefulShutdown?: boolean;

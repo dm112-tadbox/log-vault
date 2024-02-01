@@ -2,6 +2,7 @@ import path from "node:path";
 import winston from "winston";
 import "winston-daily-rotate-file";
 import { DailyRotateFileTransportOptions } from "winston-daily-rotate-file";
+import { timestampDefault } from "../defaults/timestamp";
 
 export function getFileTransport(
   params: DailyRotateFileTransportOptions
@@ -16,7 +17,7 @@ export function getFileTransport(
     format:
       params.format ||
       winston.format.combine(
-        winston.format.timestamp(),
+        winston.format.timestamp({ format: timestampDefault }),
         winston.format.json({ space: 2 })
       )
   });

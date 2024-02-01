@@ -57,10 +57,9 @@ describe("TelegramNotificationChannel class", () => {
         "*project*: LogVault\n" +
         "*environment*: test\n" +
         "*process*: some\\-service\n" +
-        "\n" +
         "```json\n" +
-        "'An error appear!'\n" +
-        "```\n",
+        "An error appear\\!\n" +
+        "```",
       parse_mode: "MarkdownV2"
     });
   });
