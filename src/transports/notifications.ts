@@ -4,6 +4,8 @@ import { randomUUID as uuid } from "node:crypto";
 import winston from "winston";
 import { redisDefault } from "../defaults/connections";
 import { removeOnCompleteDefault, removeOnFailDefault } from "../defaults/jobs";
+import { Labels } from "../LogVault";
+import { timestampDefault } from "../defaults/timestamp";
 
 export interface NotificationTransportOptions
   extends Transport.TransportStreamOptions {
@@ -11,6 +13,7 @@ export interface NotificationTransportOptions
   opts?: QueueOptions;
   queueOptions?: QueueOptions;
   jobOptions?: RedisJobOptions;
+  labels?: Labels;
 }
 
 class NotificationTransport extends Transport {
@@ -40,11 +43,7 @@ class NotificationTransport extends Transport {
     });
 
     try {
-      await this.queue.add(
-        uuid() /* Todo: notifications idempotence */,
-        info,
-        this.jobOptions
-      );
+      await this.queue.add(uuid(), info, this.jobOptions);
       callback();
     } catch (error) {
       callback(error);
@@ -60,7 +59,7 @@ export function getNotificationTransport(
   if (options?.handleRejections !== false) options.handleRejections = true;
   if (!options?.format)
     options.format = winston.format.combine(
-      winston.format.timestamp({ format: "DD MMM YYYY HH:mm:ss (Z)" })
+      winston.format.timestamp({ format: timestampDefault })
     );
   return new NotificationTransport(options);
 }

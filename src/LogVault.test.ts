@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import express from "express";
 import { waitForProcess } from "./notificator/channels/NotificationChannel.test";
 import { TelegramNotificationChannel } from "./notificator/channels/TelegramNotificationChannel";
+import { timestampDefaultRegexp } from "./defaults/timestamp";
 
 describe("console transport", () => {
   let output: any;
@@ -251,9 +252,10 @@ describe("files transport", () => {
           },
           level: "info",
           message: ["This is a test"],
-          timestamp: expect.stringMatching(
+          /* timestamp: expect.stringMatching(
             /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-          )
+          ) */
+          timestamp: expect.stringMatching(timestampDefaultRegexp)
         }),
         expect.objectContaining({
           labels: {
@@ -268,9 +270,7 @@ describe("files transport", () => {
               content: "[Circular]"
             }
           ],
-          timestamp: expect.stringMatching(
-            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-          )
+          timestamp: expect.stringMatching(timestampDefaultRegexp)
         })
       ])
     );
@@ -295,9 +295,7 @@ describe("files transport", () => {
         expect.objectContaining({
           level: "error",
           message: ["Whoops!"],
-          timestamp: expect.stringMatching(
-            /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/
-          )
+          timestamp: expect.stringMatching(timestampDefaultRegexp)
         })
       ])
     );
