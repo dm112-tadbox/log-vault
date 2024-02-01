@@ -12,5 +12,4 @@ export const customInspect = format((info, opts: InspectOptions) => {
   if (info.error) info[MESSAGE] = inspect(info.error, opts);
   info.message = info[MESSAGE];
   return info;
-  return info;
 });

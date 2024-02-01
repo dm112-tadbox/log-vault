@@ -427,10 +427,9 @@ describe("notifications", () => {
         "*project*: log\\-vault\n" +
         "*environment*: test\n" +
         "*process*: log\\-vault\n" +
-        "\n" +
         "```json\n" +
-        "[ 'New log message' ]\n" +
-        "```\n",
+        "New log message\n" +
+        "```",
       parse_mode: "MarkdownV2"
     });
 

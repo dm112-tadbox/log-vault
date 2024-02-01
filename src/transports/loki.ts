@@ -13,7 +13,7 @@ export interface LokiTransportOptions
   interval?: number;
   json?: boolean;
   batching?: boolean;
-  labels?: Labels;
+  labels: Labels;
   clearOnError?: boolean;
   replaceTimestamp?: boolean;
   gracefulShutdown?: boolean;
