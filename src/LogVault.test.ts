@@ -182,6 +182,28 @@ describe("Console transport: logging", () => {
     );
   });
 
+  it("capture console: log a single string", () => {
+    const logVault = new LogVault().withConsole().captureConsole();
+    const { logger } = logVault;
+    const spy = getConsoleSpy(logger);
+    console.log("logging with console.log");
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual("info: logging with console.log");
+  });
+
+  it("capture console: log different entities", () => {
+    const logVault = new LogVault().withConsole().captureConsole();
+    const { logger } = logVault;
+    const spy = getConsoleSpy(logger);
+    console.log("this is an object:", { some: "data" }, [1, 2]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual(
+      "info: this is an object:\n[\n  {\n    some: 'data'\n  },\n  [\n    1,\n    2\n  ]\n]"
+    );
+  });
+
   function getConsoleTransport(logger: Logger) {
     const consoleTransport = logger.transports.find(
       (t) => t instanceof Console
@@ -249,6 +271,16 @@ describe("Console transport:catching exceptions and rejections", () => {
       },
       code: "ECONNABORTED",
       status: null
+    });
+  });
+
+  it("catch a simple exception with console capturing enabled", () => {
+    const buf = execSync("ts-node ./src/test-files/textError.ts");
+    const out = formatOutput(buf);
+    expect(out).toEqual({
+      name: "Error",
+      message: "An error occur",
+      stack: expect.stringMatching(/Error:\sAn\serror\soccur\n/s)
     });
   });
 

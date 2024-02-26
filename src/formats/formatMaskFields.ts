@@ -14,7 +14,7 @@ export const formatMaskFields = format(
       map(
         maskedMessage,
         ({ key, val }) => {
-          if (key && typeof val === "string" && fields.includes(key))
+          if (key && fields.includes(key))
             val = maskLabel || defaultMaskFieldsOptions.maskLabel;
           return val;
         },

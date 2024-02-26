@@ -1,6 +1,7 @@
 import { TruncateOptions } from "obj-walker";
 import { Logger, createLogger, format } from "winston";
 import {
+  LogVaultCaptureConsoleOptions,
   LogVaultConsoleOptions,
   LogVaultConstructorOptions,
   LogVaultMaskFieldsOptions
@@ -78,7 +79,43 @@ export class LogVault {
     return this;
   }
 
-  protected get defaultMeta() {
+  public captureConsole(
+    opts: LogVaultCaptureConsoleOptions = {
+      matchLevels: { log: "info", warn: "warn", info: "info", error: "error" }
+    }
+  ): LogVault {
+    const levels = Object.keys(this.logger.levels);
+    Object.keys(opts.matchLevels).forEach((key) => {
+      if (
+        !levels.includes(opts.matchLevels[key as keyof typeof opts.matchLevels])
+      )
+        throw new Error(`${key} is not presented in logger levels`);
+    });
+
+    console.log = (...args) => {
+      return this.logger[opts.matchLevels.log as keyof Logger](...args);
+    };
+    console.warn = (...args) => {
+      return this.logger[opts.matchLevels.warn as keyof Logger](...args);
+    };
+    console.info = (...args) => {
+      return this.logger[opts.matchLevels.info as keyof Logger](...args);
+    };
+    console.error = (...args) => {
+      return this.logger[opts.matchLevels.error as keyof Logger](...args);
+    };
+
+    return this;
+  }
+
+  public uncaptureConsole(): LogVault {
+    console.log = Object.getPrototypeOf(console).log;
+    console.warn = Object.getPrototypeOf(console).warn;
+    console.info = Object.getPrototypeOf(console).info;
+    return this;
+  }
+
+  private get defaultMeta() {
     return {
       project: this.projectName,
       process: process.env.npm_package_name,

@@ -24,6 +24,15 @@ export interface LogVaultMaskFieldsOptions {
   maskLabel?: string;
 }
 
+export interface LogVaultCaptureConsoleOptions {
+  matchLevels: {
+    log: string;
+    warn: string;
+    info: string;
+    error: string;
+  };
+}
+
 export enum TextColor {
   black = "black",
   red = "red",
