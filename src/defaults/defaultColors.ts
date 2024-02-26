@@ -1,6 +1,6 @@
 import { AbstractConfigSetColors } from "winston/lib/winston/config";
-import { TextColor } from "../types/colors";
-import { FontStyle } from "../types/FontStyle";
+import { TextColor } from "../types";
+import { FontStyle } from "../types";
 
 export const defaultColors: AbstractConfigSetColors = {
   error: `${FontStyle.bold} ${TextColor.red}`,

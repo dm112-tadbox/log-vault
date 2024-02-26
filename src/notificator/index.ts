@@ -1,1 +1,0 @@
-export { Notificator } from "./Notificator";
