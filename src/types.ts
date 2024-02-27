@@ -1,6 +1,7 @@
 import { TruncateOptions } from "obj-walker";
 import { InspectOptions } from "util";
 import { LoggerOptions } from "winston";
+import DailyRotateFile from "winston-daily-rotate-file";
 import { AbstractConfigSetColors } from "winston/lib/winston/config";
 import { ConsoleTransportOptions } from "winston/lib/winston/transports";
 
@@ -31,6 +32,19 @@ export interface LogVaultCaptureConsoleOptions {
     info: string;
     error: string;
   };
+}
+
+export type LogVaultFilesOptions =
+  DailyRotateFile.DailyRotateFileTransportOptions & {
+    errorLevel?: string;
+  };
+
+export interface LogOptionsOpts {
+  meta: Meta;
+}
+
+export interface Meta {
+  [key: string]: string | number;
 }
 
 export enum TextColor {

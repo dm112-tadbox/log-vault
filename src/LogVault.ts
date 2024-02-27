@@ -4,12 +4,13 @@ import {
   LogVaultCaptureConsoleOptions,
   LogVaultConsoleOptions,
   LogVaultConstructorOptions,
+  LogVaultFilesOptions,
   LogVaultMaskFieldsOptions
 } from "./types";
 import { META } from ".";
 import { projectDirName } from "./util";
 import winston from "winston/lib/winston/config";
-import { Console } from "winston/lib/winston/transports";
+import { Console, DailyRotateFile } from "winston/lib/winston/transports";
 import {
   defaultColors,
   defaultInspectOptions,
@@ -21,9 +22,13 @@ import {
 import {
   formatArrangeOutput,
   formatConsole,
+  formatCustomOptions,
   formatError,
+  formatFile,
   formatMaskFields
 } from "./formats";
+import "winston-daily-rotate-file";
+import { resolve } from "path";
 
 export class LogVault {
   public logger: Logger;
@@ -73,6 +78,54 @@ export class LogVault {
         handleExceptions: true,
         handleRejections: true,
         ...winstonConsoleOpts
+      })
+    );
+
+    return this;
+  }
+
+  public withFiles(opts: LogVaultFilesOptions = {}): LogVault {
+    const { errorLevel = "error", ...dailyRotateFileOptions } = opts;
+
+    if (!Object.keys(this.logger.levels).includes(errorLevel))
+      throw new Error("Files errorLevel should be listed in logger levels");
+
+    const filesFormat = format.combine(
+      format.timestamp({ format: defaultTimestamp }),
+      formatCustomOptions(),
+      formatError(),
+      formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+      formatMaskFields({ ...this.maskOptions }),
+      formatFile(),
+      format.json({ space: 2 })
+    );
+
+    const commonDailyRotateOpts = {
+      dirname: resolve("./", "logs"),
+      maxSize: "1m",
+      maxFiles: "30d",
+      datePattern: "YYYY-MM-DD",
+      format: filesFormat,
+      ...dailyRotateFileOptions,
+      stream: undefined
+    };
+
+    this.logger.add(
+      new DailyRotateFile({
+        filename: `${this.logger.level}-%DATE%.log`,
+        ...commonDailyRotateOpts,
+        handleExceptions: false,
+        handleRejections: false
+      })
+    );
+
+    this.logger.add(
+      new DailyRotateFile({
+        filename: `${errorLevel}-%DATE%.log`,
+        ...commonDailyRotateOpts,
+        level: errorLevel,
+        handleExceptions: true,
+        handleRejections: true
       })
     );
 
