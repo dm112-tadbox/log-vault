@@ -1,15 +1,15 @@
 import { TruncateOptions } from "obj-walker";
-import { Logger, createLogger, format } from "winston";
+import winston, { Logger, createLogger, format } from "winston";
 import {
   LogVaultCaptureConsoleOptions,
   LogVaultConsoleOptions,
   LogVaultConstructorOptions,
   LogVaultFilesOptions,
-  LogVaultMaskFieldsOptions
+  LogVaultMaskFieldsOptions,
+  LogVaultMongoOptions
 } from "./types";
 import { META } from ".";
 import { projectDirName } from "./util";
-import winston from "winston/lib/winston/config";
 import { Console, DailyRotateFile } from "winston/lib/winston/transports";
 import {
   defaultColors,
@@ -29,6 +29,8 @@ import {
 } from "./formats";
 import "winston-daily-rotate-file";
 import { resolve } from "path";
+import { formatMongo } from "./formats/formatMongo";
+import "winston-mongodb";
 
 export class LogVault {
   public logger: Logger;
@@ -129,6 +131,32 @@ export class LogVault {
       })
     );
 
+    return this;
+  }
+
+  public withMongo(opts: LogVaultMongoOptions): LogVault {
+    const {
+      handleExceptions = true,
+      handleRejections = false,
+      ...mongoDBConnectionOptions
+    } = opts;
+    const mongoTransport = new winston.transports.MongoDB({
+      level: this.logger.level,
+      metaKey: "meta",
+      format: format.combine(
+        format.timestamp({ format: defaultTimestamp }),
+        formatCustomOptions(),
+        formatError(),
+        formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+        formatMaskFields({ ...this.maskOptions }),
+        formatFile(),
+        formatMongo()
+      ),
+      ...mongoDBConnectionOptions
+    });
+    this.logger.add(mongoTransport);
+    if (handleExceptions) this.logger.exceptions.handle(mongoTransport);
+    if (handleRejections) this.logger.rejections.handle(mongoTransport);
     return this;
   }
 

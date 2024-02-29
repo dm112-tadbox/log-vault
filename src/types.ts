@@ -2,6 +2,7 @@ import { TruncateOptions } from "obj-walker";
 import { InspectOptions } from "util";
 import { LoggerOptions } from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
+import { MongoDBConnectionOptions } from "winston-mongodb";
 import { AbstractConfigSetColors } from "winston/lib/winston/config";
 import { ConsoleTransportOptions } from "winston/lib/winston/transports";
 
@@ -38,6 +39,11 @@ export type LogVaultFilesOptions =
   DailyRotateFile.DailyRotateFileTransportOptions & {
     errorLevel?: string;
   };
+
+export interface LogVaultMongoOptions extends MongoDBConnectionOptions {
+  handleExceptions?: boolean;
+  handleRejections?: boolean;
+}
 
 export interface LogOptionsOpts {
   meta: Meta;

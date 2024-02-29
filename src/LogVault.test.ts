@@ -8,6 +8,7 @@ import { resolve } from "node:path";
 import { defaultTimestampRegexp } from "./defaults";
 import TransportStream from "winston-transport";
 import { LogOptions } from ".";
+import { MongoDB } from "winston-mongodb";
 
 describe("console transport: logging", () => {
   let output: any;
@@ -484,7 +485,7 @@ describe("files transport", () => {
     ]);
   });
 
-  it("log to file: catch simple exception", async () => {
+  it("log to file: catch axios exception", async () => {
     execSync("ts-node ./src/test-files/axiosErrorWithFiles.ts");
     const parsed = await readLogFile("error");
     expect(parsed).toEqual([
@@ -628,6 +629,203 @@ describe("files transport", () => {
     if (!transport) throw new Error("Couldn't unhandle files transport");
     return transport;
   }
+});
+
+describe("mongo transport", () => {
+  let logger: Logger;
+  let logVault: LogVault;
+  let output: any = "";
+  let spy: any;
+
+  beforeEach(() => {
+    logVault = new LogVault()
+      .withMongo({
+        db: "mongodb+srv://user:pass@cluster0.zooxqjl.mongodb.net/?retryWrites=true&w=majority"
+      })
+      .captureConsole();
+    logger = logVault.logger;
+    const mongo = logger.transports.find((t) => t instanceof MongoDB);
+    if (!mongo) throw new Error("Failed to instantiate Mongo connection");
+    spy = jest.spyOn(mongo, "log").mockImplementation((data) => {
+      output = data;
+    });
+  });
+
+  afterEach(() => {
+    if (logger) {
+      const transport = logger.transports.find((t) => t instanceof MongoDB);
+      logVault.uncaptureConsole();
+      if (transport) {
+        logger.exceptions.unhandle(transport);
+        logger.rejections.unhandle(transport);
+        process.removeAllListeners("uncaughtException");
+        process.removeAllListeners("unhandledRejection");
+      }
+    }
+  });
+
+  it("log to mongo: single message", async () => {
+    logger.info("Single message");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      message: "Single message",
+      level: "info",
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      }
+    });
+  });
+
+  it("log to mongo: curcular values", async () => {
+    const circular: { a: string; content: string | object } = {
+      a: "b",
+      content: ""
+    };
+    circular.content = circular;
+    logger.warn(circular);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "warn",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: '{\n  "a": "b",\n  "content": "...[Truncated]"\n}'
+    });
+  });
+
+  it("log to mongo: extra arguments", async () => {
+    logger.info("This is a test", { a: 1 });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: ["This is a test", { a: 1 }]
+    });
+  });
+
+  it("log to mongo: truncate object nested prop", async () => {
+    logger.info({
+      deep: { some: { obj: { deep: { deep: "nested" } } } },
+      not_nested: "value"
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message:
+        "{\n" +
+        '  "deep": {\n' +
+        '    "some": {\n' +
+        '      "obj": {\n' +
+        '        "deep": "...[Truncated]"\n' +
+        "      }\n" +
+        "    }\n" +
+        "  },\n" +
+        '  "not_nested": "value"\n' +
+        "}"
+    });
+  });
+
+  it("log to file: shrink long strings", async () => {
+    logger.info("a".repeat(4096));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      level: "info",
+      message: "a".repeat(2048) + "...",
+      meta: {
+        environment: "test",
+        process: "log-vault",
+        project: "log-vault"
+      },
+      timestamp: expect.stringMatching(defaultTimestampRegexp)
+    });
+  });
+
+  it("log to file: custom meta", async () => {
+    logger.info(
+      "A log record",
+      new LogOptions({ meta: { myCustomKey: "value" } }),
+      "something else"
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test",
+        myCustomKey: "value"
+      },
+      message: ["A log record", "something else"]
+    });
+  });
+
+  it("log to file: mask sensitive field: password", async () => {
+    logger.info({
+      user: "username",
+      password: "P@ssw0rd"
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: '{\n  "user": "username",\n  "password": "...[Masked]"\n}'
+    });
+  });
+
+  it("log to file: capture a single string", async () => {
+    console.log("logging with console.log");
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: "logging with console.log"
+    });
+  });
+
+  it("log to file: capture different entities", async () => {
+    console.log("this is an object:", { some: "data" }, [1, 2]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: ["this is an object:", { some: "data" }, [1, 2]]
+    });
+  });
 });
 
 function wait(ms: number): Promise<void> {
