@@ -1,3 +1,4 @@
+export { formatLoki } from "./formatLoki";
 export { formatCustomOptions } from "./formatCustomOptions";
 export { formatFile } from "./formatFile";
 export { formatMaskFields } from "./formatMaskFields";

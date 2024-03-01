@@ -7,8 +7,9 @@ import { readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { defaultTimestampRegexp } from "./defaults";
 import TransportStream from "winston-transport";
-import { LogOptions } from ".";
+import { LogOptions, MESSAGE } from ".";
 import { MongoDB } from "winston-mongodb";
+import LokiTransport from "winston-loki";
 
 describe("console transport: logging", () => {
   let output: any;
@@ -824,6 +825,209 @@ describe("mongo transport", () => {
         environment: "test"
       },
       message: ["this is an object:", { some: "data" }, [1, 2]]
+    });
+  });
+});
+
+describe("loki transport", () => {
+  let output: any;
+  let logger: Logger;
+  let logVault: LogVault;
+  let spy: any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    logVault = new LogVault().withLoki().captureConsole();
+    logger = logVault.logger;
+    const loki = logger.transports.find((t) => t instanceof LokiTransport);
+    if (!loki) throw new Error("Couldn't assign Loki transport");
+    spy = jest.spyOn(loki, "log").mockImplementation((data) => {
+      output = data;
+    });
+  });
+
+  afterEach(() => {
+    if (logger) {
+      logVault.uncaptureConsole();
+      const transport = logger.transports.find(
+        (t) => t instanceof LokiTransport
+      );
+      if (transport) {
+        logger.exceptions.unhandle(transport);
+        logger.rejections.unhandle(transport);
+        process.removeAllListeners("uncaughtException");
+        process.removeAllListeners("unhandledRejection");
+      }
+    }
+  });
+
+  it("log to loki: single message", async () => {
+    logger.info("Log record");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      labels: { project: "log-vault", environment: "test" },
+      message: { meta: { process: "log-vault" }, content: "Log record" },
+      [MESSAGE]: '{"meta":{"process":"log-vault"},"content":"Log record"}'
+    });
+  });
+
+  it("log to loki: curcular values", async () => {
+    const circular: { a: string; content: string | object } = {
+      a: "b",
+      content: ""
+    };
+    circular.content = circular;
+    logger.warn(circular);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "warn",
+      labels: { project: "log-vault", environment: "test" },
+      message: {
+        meta: { process: "log-vault" },
+        content: '{\n  "a": "b",\n  "content": "...[Truncated]"\n}'
+      },
+      [MESSAGE]:
+        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"a\\": \\"b\\",\\n  \\"content\\": \\"...[Truncated]\\"\\n}"}'
+    });
+  });
+
+  it("log to loki: extra arguments", async () => {
+    logger.info("This is a test", { a: 1 });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      labels: { project: "log-vault", environment: "test" },
+      message: {
+        meta: { process: "log-vault" },
+        content: ["This is a test", { a: 1 }]
+      },
+      [MESSAGE]:
+        '{"meta":{"process":"log-vault"},"content":["This is a test",{"a":1}]}'
+    });
+  });
+
+  it("log to mongo: truncate object nested prop", async () => {
+    logger.info({
+      deep: { some: { obj: { deep: { deep: "nested" } } } },
+      not_nested: "value"
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      labels: { project: "log-vault", environment: "test" },
+      message: {
+        meta: { process: "log-vault" },
+        content:
+          "{\n" +
+          '  "deep": {\n' +
+          '    "some": {\n' +
+          '      "obj": {\n' +
+          '        "deep": "...[Truncated]"\n' +
+          "      }\n" +
+          "    }\n" +
+          "  },\n" +
+          '  "not_nested": "value"\n' +
+          "}"
+      },
+      [MESSAGE]:
+        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"deep\\": {\\n    \\"some\\": {\\n      \\"obj\\": {\\n        \\"deep\\": \\"...[Truncated]\\"\\n      }\\n    }\\n  },\\n  \\"not_nested\\": \\"value\\"\\n}"}'
+    });
+  });
+
+  it("log to loki: shrink long strings", async () => {
+    logger.info("a".repeat(4096));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      level: "info",
+      // message: "a".repeat(2048) + "...",
+      labels: { project: "log-vault", environment: "test" },
+      message: {
+        content: "a".repeat(2048) + "...",
+        meta: { process: "log-vault" }
+      },
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      [MESSAGE]: JSON.stringify({
+        meta: { process: "log-vault" },
+        content: "a".repeat(2048) + "..."
+      })
+    });
+  });
+
+  it("log to loki: custom meta", async () => {
+    logger.info(
+      "A log record",
+      new LogOptions({ meta: { myCustomKey: "value" } }),
+      "something else"
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      labels: { project: "log-vault", environment: "test" },
+      message: {
+        meta: { process: "log-vault", myCustomKey: "value" },
+        content: ["A log record", "something else"]
+      },
+      [MESSAGE]:
+        '{"meta":{"process":"log-vault","myCustomKey":"value"},"content":["A log record","something else"]}'
+    });
+  });
+
+  it("log to loki: mask sensitive field: password", async () => {
+    logger.info({
+      user: "username",
+      password: "P@ssw0rd"
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      labels: { project: "log-vault", environment: "test" },
+      message: {
+        meta: { process: "log-vault" },
+        content: '{\n  "user": "username",\n  "password": "...[Masked]"\n}'
+      },
+      [MESSAGE]:
+        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"user\\": \\"username\\",\\n  \\"password\\": \\"...[Masked]\\"\\n}"}'
+    });
+  });
+
+  it("log to loki: capture a single string", async () => {
+    console.log("logging with console.log");
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      labels: { project: "log-vault", environment: "test" },
+      message: {
+        meta: { process: "log-vault" },
+        content: "logging with console.log"
+      },
+      [MESSAGE]:
+        '{"meta":{"process":"log-vault"},"content":"logging with console.log"}'
+    });
+  });
+
+  it("log to loki: capture different entities", async () => {
+    console.log("this is an object:", { some: "data" }, [1, 2]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      labels: { project: "log-vault", environment: "test" },
+      message: {
+        meta: { process: "log-vault" },
+        content: ["this is an object:", { some: "data" }, [1, 2]]
+      },
+      [MESSAGE]:
+        '{"meta":{"process":"log-vault"},"content":["this is an object:",{"some":"data"},[1,2]]}'
     });
   });
 });

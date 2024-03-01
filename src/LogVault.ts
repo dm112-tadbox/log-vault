@@ -5,6 +5,7 @@ import {
   LogVaultConsoleOptions,
   LogVaultConstructorOptions,
   LogVaultFilesOptions,
+  LogVaultLokiOptions,
   LogVaultMaskFieldsOptions,
   LogVaultMongoOptions
 } from "./types";
@@ -25,12 +26,14 @@ import {
   formatCustomOptions,
   formatError,
   formatFile,
+  formatLoki,
   formatMaskFields
 } from "./formats";
 import "winston-daily-rotate-file";
 import { resolve } from "path";
 import { formatMongo } from "./formats/formatMongo";
 import "winston-mongodb";
+import LokiTransport from "winston-loki";
 
 export class LogVault {
   public logger: Logger;
@@ -157,6 +160,27 @@ export class LogVault {
     this.logger.add(mongoTransport);
     if (handleExceptions) this.logger.exceptions.handle(mongoTransport);
     if (handleRejections) this.logger.rejections.handle(mongoTransport);
+    return this;
+  }
+
+  public withLoki(opts: LogVaultLokiOptions = {}): LogVault {
+    this.logger.add(
+      new LokiTransport({
+        host: "http://localhost:3100",
+        json: true,
+        format: format.combine(
+          format.timestamp({ format: defaultTimestamp }),
+          formatCustomOptions(),
+          formatError(),
+          formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+          formatMaskFields({ ...this.maskOptions }),
+          formatFile(),
+          formatLoki()
+        ),
+        ...opts
+      })
+    );
+
     return this;
   }
 

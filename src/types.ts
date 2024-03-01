@@ -3,6 +3,7 @@ import { InspectOptions } from "util";
 import { LoggerOptions } from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 import { MongoDBConnectionOptions } from "winston-mongodb";
+import TransportStream from "winston-transport";
 import { AbstractConfigSetColors } from "winston/lib/winston/config";
 import { ConsoleTransportOptions } from "winston/lib/winston/transports";
 
@@ -45,6 +46,21 @@ export interface LogVaultMongoOptions extends MongoDBConnectionOptions {
   handleRejections?: boolean;
 }
 
+export interface LogVaultLokiOptions
+  extends TransportStream.TransportStreamOptions {
+  host?: string;
+  basicAuth?: string;
+  headers?: object;
+  interval?: number;
+  json?: boolean;
+  batching?: boolean;
+  labels?: object;
+  clearOnError?: boolean;
+  replaceTimestamp?: boolean;
+  gracefulShutdown?: boolean;
+  timeout?: number;
+  onConnectionError?(error: unknown): void;
+}
 export interface LogOptionsOpts {
   meta: Meta;
 }
