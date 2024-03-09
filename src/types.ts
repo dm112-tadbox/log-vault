@@ -1,3 +1,9 @@
+import {
+  Processor,
+  WorkerOptions,
+  QueueOptions,
+  RedisJobOptions
+} from "bullmq";
 import { TruncateOptions } from "obj-walker";
 import { InspectOptions } from "util";
 import { LoggerOptions } from "winston";
@@ -6,6 +12,7 @@ import { MongoDBConnectionOptions } from "winston-mongodb";
 import TransportStream from "winston-transport";
 import { AbstractConfigSetColors } from "winston/lib/winston/config";
 import { ConsoleTransportOptions } from "winston/lib/winston/transports";
+import Transport from "winston-transport";
 
 export interface LogVaultConstructorOptions extends LoggerOptions {
   projectName?: string;
@@ -67,6 +74,54 @@ export interface LogOptionsOpts {
 
 export interface Meta {
   [key: string]: string | number;
+}
+
+export interface MatchPattern {
+  level?: string;
+  match?: {
+    meta?: Meta;
+    message?: string | RegExp;
+  };
+  exclude?: {
+    meta?: Meta;
+    message?: string | RegExp;
+  };
+}
+
+export interface NotificationChannelOptions {
+  matchPatterns?: MatchPattern[];
+  inspectOptions?: InspectOptions;
+}
+
+export interface TelegramNotificationChannelOptions
+  extends NotificationChannelOptions {
+  token: string;
+  chatId: number;
+  host?: string;
+  template?: string;
+  workerOptions?: Partial<WorkerOptions>;
+}
+
+export interface NotificationChannelProcessOpts {
+  processor: Processor;
+  workerOptions?: Partial<WorkerOptions>;
+  queueName: string;
+  queueOptions?: Partial<QueueOptions>; // optional
+  jobOptions?: RedisJobOptions; // optional
+}
+
+export interface NotificationTransportOptions
+  extends Transport.TransportStreamOptions {
+  name?: string;
+  queueOptions?: QueueOptions;
+  jobOptions?: RedisJobOptions;
+}
+
+export interface NotificatonTransportLogItem {
+  timestamp?: string;
+  level: string;
+  message?: string;
+  meta?: Meta;
 }
 
 export enum TextColor {

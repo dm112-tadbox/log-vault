@@ -1,3 +1,5 @@
+export { defaultJobOptions } from "./defaultJobOptions";
+export { defaultRedisConnection } from "./defaultConnections";
 export { defaultMaskFieldsOptions } from "./defaultMaskFieldsOptions";
 export { defaultColors } from "./defaultColors";
 export { defaultInspectOptions } from "./defaultInspectOpts";

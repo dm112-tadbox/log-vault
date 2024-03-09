@@ -7,7 +7,8 @@ import {
   LogVaultFilesOptions,
   LogVaultLokiOptions,
   LogVaultMaskFieldsOptions,
-  LogVaultMongoOptions
+  LogVaultMongoOptions,
+  NotificationTransportOptions
 } from "./types";
 import { META } from ".";
 import { projectDirName } from "./util";
@@ -25,15 +26,17 @@ import {
   formatConsole,
   formatCustomOptions,
   formatError,
-  formatFile,
+  formatMeta,
   formatLoki,
-  formatMaskFields
+  formatMaskFields,
+  formatNotifications
 } from "./formats";
 import "winston-daily-rotate-file";
 import { resolve } from "path";
 import { formatMongo } from "./formats/formatMongo";
 import "winston-mongodb";
 import LokiTransport from "winston-loki";
+import { NotificationsTransport } from "./transports";
 
 export class LogVault {
   public logger: Logger;
@@ -101,7 +104,7 @@ export class LogVault {
       formatError(),
       formatArrangeOutput({ truncateOptions: this.truncateOptions }),
       formatMaskFields({ ...this.maskOptions }),
-      formatFile(),
+      formatMeta(),
       format.json({ space: 2 })
     );
 
@@ -152,7 +155,7 @@ export class LogVault {
         formatError(),
         formatArrangeOutput({ truncateOptions: this.truncateOptions }),
         formatMaskFields({ ...this.maskOptions }),
-        formatFile(),
+        formatMeta(),
         formatMongo()
       ),
       ...mongoDBConnectionOptions
@@ -174,13 +177,32 @@ export class LogVault {
           formatError(),
           formatArrangeOutput({ truncateOptions: this.truncateOptions }),
           formatMaskFields({ ...this.maskOptions }),
-          formatFile(),
+          formatMeta(),
           formatLoki()
         ),
         ...opts
       })
     );
 
+    return this;
+  }
+
+  public withNotifications(opts: NotificationTransportOptions = {}): LogVault {
+    this.logger.add(
+      new NotificationsTransport({
+        name: this.projectName,
+        ...opts,
+        format: format.combine(
+          format.timestamp({ format: defaultTimestamp }),
+          formatCustomOptions(),
+          formatError(),
+          formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+          formatMaskFields({ ...this.maskOptions }),
+          formatMeta(),
+          formatNotifications()
+        )
+      })
+    );
     return this;
   }
 

@@ -1,3 +1,8 @@
+export {
+  Notificator,
+  NotificationChannel,
+  TelegramNotificationChannel
+} from "./notificator";
 export { LogVault } from "./LogVault";
 export { LogOptions } from "./LogOptions";
 export const META = Symbol.for("meta");

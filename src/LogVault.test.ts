@@ -10,6 +10,7 @@ import TransportStream from "winston-transport";
 import { LogOptions, MESSAGE } from ".";
 import { MongoDB } from "winston-mongodb";
 import LokiTransport from "winston-loki";
+import { NotificationsTransport } from "./transports";
 
 describe("console transport: logging", () => {
   let output: any;
@@ -1032,7 +1033,203 @@ describe("loki transport", () => {
   });
 });
 
-function wait(ms: number): Promise<void> {
+describe("notifications transport", () => {
+  let logger: Logger;
+  let logVault: LogVault;
+  let output: any = "";
+  let spy: any;
+
+  beforeEach(() => {
+    logVault = new LogVault().withNotifications().captureConsole();
+    logger = logVault.logger;
+    const notificationsTransport = logger.transports.find(
+      (t) => t instanceof NotificationsTransport
+    );
+    if (!notificationsTransport)
+      throw new Error("Failed to instantiate Mongo connection");
+    spy = jest
+      .spyOn(notificationsTransport, "log")
+      .mockImplementation((data) => {
+        output = data;
+      });
+  });
+
+  afterEach(() => {
+    if (logger) {
+      logVault.uncaptureConsole();
+      const transport = logger.transports.find(
+        (t) => t instanceof NotificationsTransport
+      );
+      if (transport) {
+        logger.exceptions.unhandle(transport);
+        logger.rejections.unhandle(transport);
+        process.removeAllListeners("uncaughtException");
+        process.removeAllListeners("unhandledRejection");
+      }
+    }
+  });
+
+  it("notifications transport: single string message", async () => {
+    logger.info("A single string message");
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: { project: "log-vault", process: "log-vault", environment: "test" },
+      message: "A single string message"
+    });
+  });
+
+  it("notifications transport: curcular values", async () => {
+    const circular: { a: string; content: string | object } = {
+      a: "b",
+      content: ""
+    };
+    circular.content = circular;
+    logger.warn(circular);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "warn",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: '{\n  "a": "b",\n  "content": "...[Truncated]"\n}'
+    });
+  });
+
+  it("notifications transport: extra arguments", async () => {
+    logger.info("This is a test", { a: 1 });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: ["This is a test", { a: 1 }]
+    });
+  });
+
+  it("notifications transport: truncate object nested prop", async () => {
+    logger.info({
+      deep: { some: { obj: { deep: { deep: "nested" } } } },
+      not_nested: "value"
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message:
+        "{\n" +
+        '  "deep": {\n' +
+        '    "some": {\n' +
+        '      "obj": {\n' +
+        '        "deep": "...[Truncated]"\n' +
+        "      }\n" +
+        "    }\n" +
+        "  },\n" +
+        '  "not_nested": "value"\n' +
+        "}"
+    });
+  });
+
+  it("notifications transport: shrink long strings", async () => {
+    logger.info("a".repeat(4096));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      level: "info",
+      message: "a".repeat(2048) + "...",
+      meta: {
+        environment: "test",
+        process: "log-vault",
+        project: "log-vault"
+      },
+      timestamp: expect.stringMatching(defaultTimestampRegexp)
+    });
+  });
+
+  it("notifications transport: custom meta", async () => {
+    logger.info(
+      "A log record",
+      new LogOptions({ meta: { myCustomKey: "value" } }),
+      "something else"
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test",
+        myCustomKey: "value"
+      },
+      message: ["A log record", "something else"]
+    });
+  });
+
+  it("notifications transport: mask sensitive field: password", async () => {
+    logger.info({
+      user: "username",
+      password: "P@ssw0rd"
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: '{\n  "user": "username",\n  "password": "...[Masked]"\n}'
+    });
+  });
+
+  it("notifications transport: capture a single string", async () => {
+    console.log("logging with console.log");
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: "logging with console.log"
+    });
+  });
+
+  it("notifications transport: capture different entities", async () => {
+    console.log("this is an object:", { some: "data" }, [1, 2]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: {
+        project: "log-vault",
+        process: "log-vault",
+        environment: "test"
+      },
+      message: ["this is an object:", { some: "data" }, [1, 2]]
+    });
+  });
+});
+
+export function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(() => resolve(), ms);
   });
