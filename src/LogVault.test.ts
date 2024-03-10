@@ -11,6 +11,7 @@ import { LogOptions, MESSAGE } from ".";
 import { MongoDB } from "winston-mongodb";
 import LokiTransport from "winston-loki";
 import { NotificationsTransport } from "./transports";
+import { wait } from "./test-files/util/wait";
 
 describe("console transport: logging", () => {
   let output: any;
@@ -1096,7 +1097,7 @@ describe("notifications transport", () => {
         process: "log-vault",
         environment: "test"
       },
-      message: '{\n  "a": "b",\n  "content": "...[Truncated]"\n}'
+      message: { a: "b", content: "...[Truncated]" }
     });
   });
 
@@ -1129,17 +1130,10 @@ describe("notifications transport", () => {
         process: "log-vault",
         environment: "test"
       },
-      message:
-        "{\n" +
-        '  "deep": {\n' +
-        '    "some": {\n' +
-        '      "obj": {\n' +
-        '        "deep": "...[Truncated]"\n' +
-        "      }\n" +
-        "    }\n" +
-        "  },\n" +
-        '  "not_nested": "value"\n' +
-        "}"
+      message: {
+        deep: { some: { obj: { deep: "...[Truncated]" } } },
+        not_nested: "value"
+      }
     });
   });
 
@@ -1192,7 +1186,7 @@ describe("notifications transport", () => {
         process: "log-vault",
         environment: "test"
       },
-      message: '{\n  "user": "username",\n  "password": "...[Masked]"\n}'
+      message: { user: "username", password: "...[Masked]" }
     });
   });
 
@@ -1228,9 +1222,3 @@ describe("notifications transport", () => {
     });
   });
 });
-
-export function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(), ms);
-  });
-}

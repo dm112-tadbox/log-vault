@@ -1,5 +1,5 @@
 import express from "express";
-import { waitForProcess } from "./NotificationChannel.test";
+import { waitForProcess } from "../../test-files/util/waitForProcess";
 import { Server, IncomingMessage, ServerResponse } from "http";
 import bodyParser from "body-parser";
 import { TelegramNotificationChannel } from "./TelegramNotificationChannel";

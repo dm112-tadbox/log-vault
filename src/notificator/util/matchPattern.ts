@@ -28,16 +28,31 @@ function isPatternMatched(
       )
         return false;
     }
-    if (exclude.message && log.message?.match(exclude.message)) return false;
+    if (exclude.message && isMessageMatching(exclude.message, log.message))
+      return false;
   }
 
   if (level && log.level !== level) return false;
 
-  if (match?.meta)
+  if (match?.meta) {
     matching &&= Object.keys(match.meta).every(
       (key) => log.meta?.[key] === match.meta?.[key]
     );
-  if (match?.message) matching &&= !!log.message?.match(match?.message);
+  }
+
+  if (match?.message)
+    matching &&= isMessageMatching(match?.message, log.message);
 
   return matching;
+}
+
+function isMessageMatching(pattern: string | RegExp, message: any): boolean {
+  try {
+    const messageString =
+      typeof message === "string" ? message : JSON.stringify(message);
+    return !!messageString?.match(pattern);
+  } catch (error) {
+    console.error("Error while matching", error);
+    return false;
+  }
 }

@@ -1,7 +1,7 @@
 import { Job, Queue } from "bullmq";
 import { Notificator } from "./Notificator";
 import { NotificationChannel } from "./channels/NotificationChannel";
-import { waitForProcess } from "./channels/NotificationChannel.test";
+import { waitForProcess } from "../test-files/util/waitForProcess";
 import { NotificationChannelOptions } from "../types";
 
 describe("Notificator class tests", () => {

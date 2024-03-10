@@ -1,6 +1,7 @@
-import { Job, QueueEvents } from "bullmq";
+import { Job } from "bullmq";
 import { NotificationChannel } from "./NotificationChannel";
 import { NotificationChannelOptions } from "../../types";
+import { waitForProcess } from "../../test-files/util/waitForProcess";
 
 describe("NotificationChannel class", () => {
   it("main notification channel class", async () => {
@@ -23,10 +24,3 @@ describe("NotificationChannel class", () => {
     await testChannel.stop();
   });
 });
-
-export function waitForProcess(queueName: string): Promise<any> {
-  return new Promise((resolve) => {
-    const queueEvents = new QueueEvents(queueName);
-    queueEvents.on("completed", ({ returnvalue }) => resolve(returnvalue));
-  });
-}

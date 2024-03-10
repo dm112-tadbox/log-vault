@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "babel src --out-dir ./dist --source-maps --watch",
-    "test": "jest --forceExit",
+    "test": "jest --forceExit --runInBand",
     "test:watch": "jest --watch --forceExit --runInBand",
     "test:coverage": "jest --coverage",
     "lint": "eslint --fix . --ext .ts",
@@ -22,7 +22,9 @@
     "mongo",
     "logfile",
     "output",
-    "process.stdout"
+    "process.stdout",
+    "loki",
+    "grafana"
   ],
   "author": "dm112@tadbox.com",
   "license": "ISC",
