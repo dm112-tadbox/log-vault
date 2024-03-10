@@ -29,3 +29,18 @@ Default levels:
 - verbose
 - debug
 - silly
+
+### Console transport
+
+```ts
+import { LogVault } from 'log-vault';
+
+const { logger } = new LogVault().withConsole();
+
+logger.log({ level: "info", message: "Hey, I'm a log entry!" });
+logger.warn("It's a warning");
+logger.error("Whoops!");
+```
+
+Output:
+![output](http://url/to/img.png)
