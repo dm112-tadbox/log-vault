@@ -1,13 +1,15 @@
 export {
-  TelegramNotificationChannel,
-  TelegramNotificationChannelOpts
-} from "./notificator/channels/TelegramNotificationChannel";
-export { Notificator } from "./notificator";
+  Notificator,
+  NotificationChannel,
+  TelegramNotificationChannel
+} from "./notificator";
 export { LogVault } from "./LogVault";
+export { LogOptions } from "./LogOptions";
+export const META = Symbol.for("meta");
+export const SPLAT = Symbol.for("splat");
+export const LABEL = Symbol.for("label");
+export const LEVEL = Symbol.for("level");
+export const MESSAGE = Symbol.for("message");
 
 // types
-export * from "./types/FontStyle";
-export * from "./types/Level";
-export * from "./types/LogRecord";
-export * from "./types/colors";
-export * from "./types/messages";
+export * from "./types";

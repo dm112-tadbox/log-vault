@@ -1,50 +1,17 @@
-import {
-  Job,
-  Processor,
-  Queue,
-  QueueOptions,
-  RedisJobOptions,
-  Worker,
-  WorkerOptions
-} from "bullmq";
-import { redisDefault } from "../../defaults/connections";
-import { randomUUID as uuid } from "node:crypto";
-import {
-  removeOnCompleteDefault,
-  removeOnFailDefault
-} from "../../defaults/jobs";
+import { defaultJobOptions } from "./../../defaults/defaultJobOptions";
+import { Job, Processor, Queue, RedisJobOptions, Worker } from "bullmq";
+import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:stream";
 import { InspectOptions } from "node:util";
-
-export interface SearchPattern {
-  [key: string]: string | RegExp;
-}
-
-export interface NotificationChannelOpts {
-  patterns: SearchPattern[];
-  inspectOptions?: InspectOptions;
-}
-
-export interface NotificationChannelProcessOpts {
-  processor: Processor;
-  workerOptions?: Partial<WorkerOptions>;
-  queueName: string;
-  queueOptions?: Partial<QueueOptions>; // optional
-  jobOptions?: RedisJobOptions; // optional
-}
-
-export interface JobData {
-  level: string;
-  labels: {
-    process?: string;
-    method?: string;
-    environment?: string;
-    user?: string;
-  };
-}
+import {
+  NotificationChannelProcessOpts,
+  NotificationChannelOptions,
+  MatchPattern
+} from "../../types";
+import { defaultRedisConnection } from "../../defaults";
 
 export class NotificationChannel extends EventEmitter {
-  public patterns: SearchPattern[];
+  public matchPatterns: MatchPattern[];
   private queue?: Queue;
   private worker?: Worker;
   private processor: Processor = async (job: Job) => {
@@ -53,20 +20,18 @@ export class NotificationChannel extends EventEmitter {
   private jobOptions?: RedisJobOptions;
   protected inspectOptions?: InspectOptions;
 
-  constructor({ patterns = [], inspectOptions = {} }: NotificationChannelOpts) {
+  constructor(opts: NotificationChannelOptions = {}) {
     super();
-    this.patterns = patterns;
 
-    const {
-      depth = 3,
-      maxArrayLength = 10,
-      maxStringLength = 1024
-    } = inspectOptions;
+    const { matchPatterns = [], inspectOptions = {} } = opts;
+
+    this.matchPatterns = matchPatterns;
+
     this.inspectOptions = {
-      ...inspectOptions,
-      maxArrayLength,
-      maxStringLength,
-      depth
+      depth: 3,
+      maxArrayLength: 10,
+      maxStringLength: 1024,
+      ...inspectOptions
     };
   }
 
@@ -79,30 +44,26 @@ export class NotificationChannel extends EventEmitter {
       jobOptions = {}
     } = opts;
 
-    if (!queueOptions.connection) queueOptions.connection = redisDefault;
-    this.queue = new Queue(queueName, queueOptions as QueueOptions);
+    this.queue = new Queue(queueName, {
+      connection: defaultRedisConnection,
+      ...queueOptions
+    });
 
     this.jobOptions = {
-      ...jobOptions,
-      ...(!jobOptions.removeOnComplete && {
-        removeOnComplete: removeOnCompleteDefault
-      }),
-      ...(!jobOptions.removeOnFail && {
-        removeOnFail: removeOnFailDefault
-      })
+      ...defaultJobOptions,
+      ...jobOptions
     };
 
-    if (!workerOptions.connection) workerOptions.connection = redisDefault;
-    this.worker = new Worker(
-      queueName,
-      processor,
-      workerOptions as WorkerOptions
-    );
+    this.worker = new Worker(queueName, processor, {
+      connection: defaultRedisConnection,
+      ...workerOptions
+    });
+
     return this;
   }
 
   public async addToQueue(log: any): Promise<void> {
-    await this.queue?.add(uuid(), log, this.jobOptions);
+    await this.queue?.add(randomUUID(), log, this.jobOptions);
   }
 
   public async stop() {

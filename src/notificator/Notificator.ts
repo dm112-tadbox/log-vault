@@ -1,36 +1,31 @@
-import { Job, Worker, WorkerOptions } from "bullmq";
-import { redisDefault } from "../defaults/connections";
+import { Job, Worker } from "bullmq";
+import { defaultRedisConnection } from "../defaults";
 import { NotificationChannel } from "./channels/NotificationChannel";
-import { matchPattern } from "./matchPattern";
-
-export interface NotificatorConstructorOptions {
-  queueName?: string;
-  workerOpts?: Partial<WorkerOptions>;
-}
+import { matchPattern } from "./util/matchPattern";
+import { projectDirName } from "../util";
+import { NotificatorConstructorOptions } from "../types";
 
 export class Notificator {
   protected worker: Worker;
   protected channels: NotificationChannel[] = [];
 
-  constructor(opts?: NotificatorConstructorOptions) {
-    const { queueName = "log-vault", workerOpts } = opts || {};
+  constructor(opts: NotificatorConstructorOptions = {}) {
+    const { queueName = projectDirName(), workerOpts } = opts;
 
     this.worker = new Worker(
       queueName,
       async (job: Job) => {
         const matchedChannels = matchPattern(job.data, this.channels);
-
         return Promise.all(matchedChannels.map((c) => c.addToQueue(job.data)));
       },
       {
-        ...workerOpts,
-        connection: workerOpts?.connection || redisDefault,
-        autorun: !!workerOpts?.autorun
+        connection: defaultRedisConnection,
+        autorun: true,
+        ...workerOpts
       }
     );
 
     this.worker.on("error", (err) => {
-      // log the error
       console.error(err);
     });
   }

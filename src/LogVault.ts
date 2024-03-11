@@ -1,221 +1,252 @@
-import winston from "winston";
-import { getConsoleTransport } from "./transports/console";
-import { defaultLevels } from "./defaults/levels";
-import { Level } from "./types/Level";
-import { LokiTransportOptions, getLokiTransport } from "./transports/loki";
-import { Console } from "winston/lib/winston/transports";
-import { projectDirName } from "./util/projectDirName";
-import { getFileTransport } from "./transports/file";
-import { getMongoTransport } from "./transports/mongo";
-import { DailyRotateFileTransportOptions } from "winston-daily-rotate-file";
-import { InspectOptions, inspect } from "node:util";
-import { MongoDBConnectionOptions } from "winston-mongodb";
+import { TruncateOptions } from "obj-walker";
+import winston, { Logger, createLogger, format } from "winston";
 import {
-  NotificationTransportOptions,
-  getNotificationTransport
-} from "./transports/notifications";
-import { inspectOptions as defaultInspectOptions } from "./defaults/inspectOptions";
-
-interface LogVaultConstructorOptions {
-  maxLevel?: Level;
-  project?: string;
-  noConsole?: boolean;
-  inspectOptions?: InspectOptions;
-}
-
-export type Labels = { [key: string]: string | undefined };
-export { Level } from "./types/Level";
+  LogVaultCaptureConsoleOptions,
+  LogVaultConsoleOptions,
+  LogVaultConstructorOptions,
+  LogVaultFilesOptions,
+  LogVaultLokiOptions,
+  LogVaultMaskFieldsOptions,
+  LogVaultMongoOptions,
+  NotificationTransportOptions
+} from "./types";
+import { META } from ".";
+import { projectDirName } from "./util";
+import { Console, DailyRotateFile } from "winston/lib/winston/transports";
+import {
+  defaultColors,
+  defaultInspectOptions,
+  defaultLevels,
+  defaultMaskFieldsOptions,
+  defaultTimestamp,
+  defaultTruncateOptions
+} from "./defaults";
+import {
+  formatArrangeOutput,
+  formatConsole,
+  formatCustomOptions,
+  formatError,
+  formatMeta,
+  formatLoki,
+  formatMaskFields,
+  formatNotifications
+} from "./formats";
+import "winston-daily-rotate-file";
+import { resolve } from "path";
+import { formatMongo } from "./formats/formatMongo";
+import "winston-mongodb";
+import LokiTransport from "winston-loki";
+import { NotificationsTransport } from "./transports";
 
 export class LogVault {
-  public logger: winston.Logger;
-  private project: string;
-  public maxLevel: Level;
-  private inspectOptions: InspectOptions;
+  public logger: Logger;
+  private projectName: string;
+  private truncateOptions: TruncateOptions;
+  private maskOptions: LogVaultMaskFieldsOptions;
 
-  constructor(params?: LogVaultConstructorOptions) {
+  constructor(opts: LogVaultConstructorOptions = {}) {
     const {
-      maxLevel = Level.info,
-      project = projectDirName(),
-      noConsole = false,
-      inspectOptions = defaultInspectOptions
-    } = params || {};
-    this.maxLevel = maxLevel;
-    this.project = project;
-    this.logger = winston.createLogger({
+      projectName = projectDirName(),
+      truncateOptions = defaultTruncateOptions,
+      maskOptions = defaultMaskFieldsOptions,
+      ...winstonOpts
+    } = opts;
+    this.projectName = projectName;
+    this.truncateOptions = truncateOptions;
+    this.maskOptions = maskOptions;
+    this.logger = createLogger({
       levels: defaultLevels,
-      level: this.maxLevel,
-      exitOnError: false
+      level: "http",
+      exitOnError: false,
+      defaultMeta: {
+        [META]: this.defaultMeta
+      },
+      ...winstonOpts
     });
-    this.inspectOptions = inspectOptions;
-    if (!noConsole) this.withConsole();
   }
 
-  public withConsole(
-    params?: winston.transports.ConsoleTransportOptions
-  ): LogVault {
-    if (this.logger.transports.find((t) => t instanceof Console))
-      throw new Error("Console transport is already added");
+  public withConsole(opts: LogVaultConsoleOptions = {}): LogVault {
+    const {
+      colors = defaultColors,
+      inspectOptions = defaultInspectOptions,
+      ...winstonConsoleOpts
+    } = opts;
+    winston.addColors(colors);
+
     this.logger.add(
-      getConsoleTransport({
-        ...params,
-        ...(!params?.level && { level: this.maxLevel }),
-        inspectOptions: this.inspectOptions
+      new Console({
+        format: format.combine(
+          format.timestamp({ format: defaultTimestamp }),
+          format.colorize(),
+          formatError(),
+          formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+          formatMaskFields({ ...this.maskOptions }),
+          formatConsole({ inspectOptions })
+        ),
+        handleExceptions: true,
+        handleRejections: true,
+        ...winstonConsoleOpts
       })
     );
+
     return this;
   }
 
-  public captureConsole() {
-    console.error = (...args) => {
-      return this.error(...args);
+  public withFiles(opts: LogVaultFilesOptions = {}): LogVault {
+    const { errorLevel = "error", ...dailyRotateFileOptions } = opts;
+
+    if (!Object.keys(this.logger.levels).includes(errorLevel))
+      throw new Error("Files errorLevel should be listed in logger levels");
+
+    const filesFormat = format.combine(
+      format.timestamp({ format: defaultTimestamp }),
+      formatCustomOptions(),
+      formatError(),
+      formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+      formatMaskFields({ ...this.maskOptions }),
+      formatMeta(),
+      format.json({ space: 2 })
+    );
+
+    const commonDailyRotateOpts = {
+      dirname: resolve("./", "logs"),
+      maxSize: "1m",
+      maxFiles: "30d",
+      datePattern: "YYYY-MM-DD",
+      format: filesFormat,
+      ...dailyRotateFileOptions,
+      stream: undefined
     };
-    console.warn = (...args) => {
-      return this.warn(...args);
-    };
-    console.log = (...args) => {
-      return this.info(...args);
-    };
-    console.info = (...args) => {
-      return this.info(...args);
-    };
+
+    this.logger.add(
+      new DailyRotateFile({
+        filename: `${this.logger.level}-%DATE%.log`,
+        ...commonDailyRotateOpts,
+        handleExceptions: false,
+        handleRejections: false
+      })
+    );
+
+    this.logger.add(
+      new DailyRotateFile({
+        filename: `${errorLevel}-%DATE%.log`,
+        ...commonDailyRotateOpts,
+        level: errorLevel,
+        handleExceptions: true,
+        handleRejections: true
+      })
+    );
+
     return this;
   }
 
-  public withFiles(params?: DailyRotateFileTransportOptions): LogVault {
-    if (!params) params = {};
-    const combinedFileTransport = getFileTransport({
-      ...params,
-      ...(!params.level && { level: this.maxLevel })
-    });
-    this.logger.add(combinedFileTransport);
-
-    const errorFileTransport = getFileTransport({
-      ...params,
-      level: Level.error,
-      handleExceptions: true,
-      handleRejections: true
-    });
-    this.logger.add(errorFileTransport);
-    return this;
-  }
-
-  public withLoki(params?: Partial<LokiTransportOptions>): LogVault {
-    params = params || {};
-    if (!params.onConnectionError)
-      params.onConnectionError = (e: any) => {
-        this.error(
-          "Failed to connect to Loki. Loki transport will be unlinked from the logger. To enable it, restore the connection and restart the process.\n",
-          e?.stack || e
-        );
-      };
-    if (!params.inspectOptions) params.inspectOptions = this.inspectOptions;
-    const lokiTransport = getLokiTransport({
-      ...params,
-      level: params.level || this.maxLevel,
-      labels: {
-        ...params?.labels,
-        ...this.labels
-      }
-    });
-    this.logger.add(lokiTransport);
-    return this;
-  }
-
-  public withMongo(params: MongoDBConnectionOptions): LogVault {
-    if (!params.level) params.level = this.maxLevel;
-    const mongoTransport = getMongoTransport({
-      ...params,
-      labels: this.labels
+  public withMongo(opts: LogVaultMongoOptions): LogVault {
+    const {
+      handleExceptions = true,
+      handleRejections = false,
+      ...mongoDBConnectionOptions
+    } = opts;
+    const mongoTransport = new winston.transports.MongoDB({
+      level: this.logger.level,
+      metaKey: "meta",
+      format: format.combine(
+        format.timestamp({ format: defaultTimestamp }),
+        formatCustomOptions(),
+        formatError(),
+        formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+        formatMaskFields({ ...this.maskOptions }),
+        formatMeta(),
+        formatMongo()
+      ),
+      ...mongoDBConnectionOptions
     });
     this.logger.add(mongoTransport);
-    this.logger.exceptions.handle(mongoTransport);
-    this.logger.rejections.handle(mongoTransport);
+    if (handleExceptions) this.logger.exceptions.handle(mongoTransport);
+    if (handleRejections) this.logger.rejections.handle(mongoTransport);
     return this;
   }
 
-  public withNotifications(
-    opts?: Partial<NotificationTransportOptions>
-  ): LogVault {
+  public withLoki(opts: LogVaultLokiOptions = {}): LogVault {
     this.logger.add(
-      getNotificationTransport({
+      new LokiTransport({
+        host: "http://localhost:3100",
+        json: true,
+        format: format.combine(
+          format.timestamp({ format: defaultTimestamp }),
+          formatCustomOptions(),
+          formatError(),
+          formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+          formatMaskFields({ ...this.maskOptions }),
+          formatMeta(),
+          formatLoki()
+        ),
+        ...opts
+      })
+    );
+
+    return this;
+  }
+
+  public withNotifications(opts: NotificationTransportOptions = {}): LogVault {
+    this.logger.add(
+      new NotificationsTransport({
+        name: this.projectName,
         ...opts,
-        labels: {
-          ...this.labels,
-          ...opts?.labels
-        }
+        format: format.combine(
+          format.timestamp({ format: defaultTimestamp }),
+          formatCustomOptions(),
+          formatError(),
+          formatArrangeOutput({ truncateOptions: this.truncateOptions }),
+          formatMaskFields({ ...this.maskOptions }),
+          formatMeta(),
+          formatNotifications()
+        )
       })
     );
     return this;
   }
 
-  protected get labels() {
+  public captureConsole(
+    opts: LogVaultCaptureConsoleOptions = {
+      matchLevels: { log: "info", warn: "warn", info: "info", error: "error" }
+    }
+  ): LogVault {
+    const levels = Object.keys(this.logger.levels);
+    Object.keys(opts.matchLevels).forEach((key) => {
+      if (
+        !levels.includes(opts.matchLevels[key as keyof typeof opts.matchLevels])
+      )
+        throw new Error(`${key} is not presented in logger levels`);
+    });
+
+    console.log = (...args) => {
+      return this.logger[opts.matchLevels.log as keyof Logger](...args);
+    };
+    console.warn = (...args) => {
+      return this.logger[opts.matchLevels.warn as keyof Logger](...args);
+    };
+    console.info = (...args) => {
+      return this.logger[opts.matchLevels.info as keyof Logger](...args);
+    };
+    console.error = (...args) => {
+      return this.logger[opts.matchLevels.error as keyof Logger](...args);
+    };
+
+    return this;
+  }
+
+  public uncaptureConsole(): LogVault {
+    console.log = Object.getPrototypeOf(console).log;
+    console.warn = Object.getPrototypeOf(console).warn;
+    console.info = Object.getPrototypeOf(console).info;
+    return this;
+  }
+
+  private get defaultMeta() {
     return {
-      project: this.project,
+      project: this.projectName,
       process: process.env.npm_package_name,
       environment: process.env.NODE_ENV
     };
-  }
-
-  protected write(level: Level, messages: any, labels?: Labels) {
-    this.logger.log({
-      level,
-      message: messages,
-      labels: {
-        ...this.labels,
-        ...labels
-      }
-    });
-  }
-
-  public error(...messages: any) {
-    return this.write(Level.error, messages);
-  }
-
-  public warn(...messages: any) {
-    return this.write(Level.warn, messages);
-  }
-
-  public info(...messages: any) {
-    return this.write(Level.info, messages);
-  }
-
-  public log(...messages: any) {
-    return this.write(Level.info, messages);
-  }
-
-  public logWithDetails({
-    level = Level.info,
-    message,
-    labels
-  }: {
-    level?: Level;
-    message: any;
-    labels?: Labels;
-  }) {
-    this.write(
-      level,
-      inspect(message, {
-        compact: false,
-        maxStringLength: 1024,
-        maxArrayLength: 10
-      }),
-      labels
-    );
-  }
-
-  public http(...messages: any) {
-    return this.write(Level.http, messages);
-  }
-
-  public verbose(...messages: any) {
-    return this.write(Level.verbose, messages);
-  }
-
-  public debug(...messages: any) {
-    return this.write(Level.debug, messages);
-  }
-
-  public silly(...messages: any) {
-    return this.write(Level.silly, messages);
   }
 }

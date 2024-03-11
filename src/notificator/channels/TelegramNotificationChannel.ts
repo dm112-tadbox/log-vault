@@ -1,32 +1,19 @@
 /* eslint-disable no-useless-escape */
-import { Job, WorkerOptions } from "bullmq";
-import {
-  NotificationChannel,
-  NotificationChannelOpts
-} from "./NotificationChannel";
+import { Job } from "bullmq";
+import { NotificationChannel } from "./NotificationChannel";
 import axios from "axios";
 import { render } from "mustache";
-import { LogRecord } from "../../types/LogRecord";
+import {
+  NotificatonTransportLogItem,
+  TelegramNotificationChannelOptions
+} from "../../types";
 
-export interface TelegramNotificationChannelOpts
-  extends NotificationChannelOpts {
-  token: string;
-  chatId: number;
-  host?: string;
-  template?: string;
-  workerOptions?: Partial<WorkerOptions>;
-}
+const basicTemplate = `{{emojiLevel}} *{{level}} log message* {{#timestamp}}⏱ _{{timestamp}}_{{/timestamp}}
 
-const basicTemplate = `{{emojiLevel}} *{{level}} log message*
-
-{{#timestamp}}
-⏱ _{{timestamp}}_
-{{/timestamp}}
-{{#labels.project}}*project*: {{labels.project}}{{/labels.project}}{{#labels.environment}}
-*environment*: {{labels.environment}}{{/labels.environment}}{{#labels.process}}
-*process*: {{labels.process}}{{/labels.process}}{{#labels.method}}
-*method*: {{labels.method}}{{/labels.method}}{{#labels.user}}
-*user*: {{labels.user}}{{/labels.user}}{{#shrinked}}
+{{#meta}}
+\`[{{label}}]: {{value}}\`
+{{/meta}}
+{{#shrinked}}
 >The message is shrinked as it's over {{shrinked}} characters length\\.
 >Please, consider a more accurate handler for this log entry in your code\\.
 {{/shrinked}}
@@ -50,12 +37,12 @@ function getEmojiLevel(level: string) {
   return item?.emoji || "🔵";
 }
 
-function renderLogMessage(template: string, log: LogRecord) {
-  const { level, message, timestamp, labels = {} } = log;
+function renderLogMessage(template: string, log: NotificatonTransportLogItem) {
+  const { level, message, timestamp, meta = {} } = log;
 
   const limit = 2048;
   const { shrinked, shrinkedMessage } = shrinkStringSize(
-    message.toString(),
+    JSON.stringify(message, null, 2),
     limit
   );
 
@@ -63,19 +50,19 @@ function renderLogMessage(template: string, log: LogRecord) {
     level: string;
     message: string | string[];
     timestamp?: string;
-    labels: {
-      [key: string]: string;
-    };
+    meta: {
+      label: string;
+      value: string;
+    }[];
   } = {
     level: unescape(level),
     message: unescape(shrinkedMessage),
     timestamp: unescape(timestamp),
-    labels: {}
+    meta: Object.keys(meta).map((label) => ({
+      label,
+      value: unescape(meta[label]?.toString())
+    }))
   };
-
-  for (const key of Object.keys(labels)) {
-    unescaped.labels[key] = unescape(labels[key]);
-  }
 
   const rendered = render(template, {
     ...unescaped,
@@ -102,7 +89,7 @@ function shrinkStringSize(
 }
 
 export class TelegramNotificationChannel extends NotificationChannel {
-  constructor(opts: TelegramNotificationChannelOpts) {
+  constructor(opts: TelegramNotificationChannelOptions) {
     super(opts);
 
     const {
@@ -118,7 +105,7 @@ export class TelegramNotificationChannel extends NotificationChannel {
       queueName: `${token}:${chatId}`,
       processor: async (job: Job) => {
         try {
-          const log: LogRecord = job.data;
+          const log: NotificatonTransportLogItem = job.data;
           await axios({
             method: "post",
             baseURL,
@@ -135,11 +122,11 @@ export class TelegramNotificationChannel extends NotificationChannel {
         return job.data;
       },
       workerOptions: {
-        ...workerOptions,
-        limiter: workerOptions?.limiter || {
+        limiter: {
           max: 1,
           duration: 5000
-        }
+        },
+        ...workerOptions
       }
     });
   }

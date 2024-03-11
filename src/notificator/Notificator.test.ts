@@ -1,10 +1,8 @@
 import { Job, Queue } from "bullmq";
 import { Notificator } from "./Notificator";
-import {
-  NotificationChannel,
-  NotificationChannelOpts
-} from "./channels/NotificationChannel";
-import { waitForProcess } from "./channels/NotificationChannel.test";
+import { NotificationChannel } from "./channels/NotificationChannel";
+import { waitForProcess } from "../test-files/util/waitForProcess";
+import { NotificationChannelOptions } from "../types";
 
 describe("Notificator class tests", () => {
   it("Notificator class", async () => {
@@ -12,10 +10,10 @@ describe("Notificator class tests", () => {
       queueName: "test-notificator-queue"
     });
     class TestChannel extends NotificationChannel {
-      constructor(opts: NotificationChannelOpts) {
+      constructor(opts: NotificationChannelOptions) {
         super(opts);
         this.process({
-          queueName: "test-channel-queue",
+          queueName: "test-nchannel-queue",
           processor: async (job: Job) => {
             return job.data;
           }
@@ -23,9 +21,8 @@ describe("Notificator class tests", () => {
       }
     }
 
-    const testChannel = new TestChannel({ patterns: [] });
+    const testChannel = new TestChannel({ matchPatterns: [] });
     notificator.add(testChannel);
-    notificator.run();
 
     const testQueue = new Queue("test-notificator-queue");
 
@@ -33,7 +30,7 @@ describe("Notificator class tests", () => {
       data: "test-data"
     });
 
-    const processed = await waitForProcess("test-channel-queue");
+    const processed = await waitForProcess("test-nchannel-queue");
     expect(processed).toEqual({
       data: "test-data"
     });

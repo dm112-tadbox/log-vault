@@ -22,14 +22,18 @@
     "mongo",
     "logfile",
     "output",
-    "process.stdout"
+    "process.stdout",
+    "loki",
+    "grafana"
   ],
   "author": "dm112@tadbox.com",
   "license": "ISC",
   "dependencies": {
+    "@common.js/serialize-error": "^11.0.3",
     "axios": "^1.6.7",
     "bullmq": "^5.1.5",
     "mustache": "^4.2.0",
+    "obj-walker": "^1.10.0",
     "winston": "^3.9.0",
     "winston-daily-rotate-file": "^4.7.1",
     "winston-loki": "^6.0.8",
