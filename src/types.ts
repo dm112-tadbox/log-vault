@@ -87,6 +87,10 @@ export interface MatchPattern {
     message?: string | RegExp;
   };
 }
+export interface NotificatorConstructorOptions {
+  queueName?: string;
+  workerOpts?: Partial<WorkerOptions>;
+}
 
 export interface NotificationChannelOptions {
   matchPatterns?: MatchPattern[];

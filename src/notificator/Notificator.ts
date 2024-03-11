@@ -1,13 +1,9 @@
-import { Job, Worker, WorkerOptions } from "bullmq";
+import { Job, Worker } from "bullmq";
 import { defaultRedisConnection } from "../defaults";
 import { NotificationChannel } from "./channels/NotificationChannel";
 import { matchPattern } from "./util/matchPattern";
 import { projectDirName } from "../util";
-
-export interface NotificatorConstructorOptions {
-  queueName?: string;
-  workerOpts?: Partial<WorkerOptions>;
-}
+import { NotificatorConstructorOptions } from "../types";
 
 export class Notificator {
   protected worker: Worker;

@@ -122,11 +122,11 @@ export class TelegramNotificationChannel extends NotificationChannel {
         return job.data;
       },
       workerOptions: {
-        ...workerOptions,
-        limiter: workerOptions?.limiter || {
+        limiter: {
           max: 1,
           duration: 5000
-        }
+        },
+        ...workerOptions
       }
     });
   }
