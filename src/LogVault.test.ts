@@ -247,6 +247,14 @@ describe("console transport: logging", () => {
     );
   });
 
+  it("console: do not output LogOptions", () => {
+    const { logger } = new LogVault().withConsole();
+    const spy = getConsoleSpy(logger);
+    logger.info("something", new LogOptions({ meta: { key: "value" } }));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info: something");
+  });
+
   it("capture console: log a single string", () => {
     const logVault = new LogVault().withConsole().captureConsole();
     const { logger } = logVault;
