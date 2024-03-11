@@ -1,7 +1,7 @@
 {
   "name": "log-vault",
-  "version": "1.2.14",
-  "description": "Log vault is a library, intended to use in projects where you are required to collect, store and structure the logs, produced by your nodejs process",
+  "version": "2.0.0",
+  "description": "A generator of Winston logger instance with pre-defined configurable transports and formats and extra functionality.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -24,7 +24,8 @@
     "output",
     "process.stdout",
     "loki",
-    "grafana"
+    "grafana",
+    "alarm"
   ],
   "author": "dm112@tadbox.com",
   "license": "ISC",

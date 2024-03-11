@@ -193,6 +193,60 @@ describe("console transport: logging", () => {
     );
   });
 
+  it("console: mask values in extra object", () => {
+    const logVault = new LogVault().withConsole();
+    const { logger } = logVault;
+    const spy = getConsoleSpy(logger);
+    logger.http("An error occured", {
+      request: {
+        headers: {
+          "content-type": "application/json"
+        },
+        body: {
+          login: "sdjkjasdh",
+          password: "P@ssw0rd"
+        }
+      },
+      response: {
+        header: {
+          id: null,
+          status: "ERROR"
+        },
+        error: {
+          code: "INPDATAFORMAT",
+          message: "Input data format is incorrect"
+        }
+      }
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual(
+      "http: An error occured\n" +
+        "[\n" +
+        "  {\n" +
+        "    request: {\n" +
+        "      headers: {\n" +
+        "        'content-type': 'application/json'\n" +
+        "      },\n" +
+        "      body: {\n" +
+        "        login: 'sdjkjasdh',\n" +
+        "        password: '...[Masked]'\n" +
+        "      }\n" +
+        "    },\n" +
+        "    response: {\n" +
+        "      header: {\n" +
+        "        id: null,\n" +
+        "        status: 'ERROR'\n" +
+        "      },\n" +
+        "      error: {\n" +
+        "        code: 'INPDATAFORMAT',\n" +
+        "        message: 'Input data format is incorrect'\n" +
+        "      }\n" +
+        "    }\n" +
+        "  }\n" +
+        "]"
+    );
+  });
+
   it("capture console: log a single string", () => {
     const logVault = new LogVault().withConsole().captureConsole();
     const { logger } = logVault;
