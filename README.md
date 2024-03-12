@@ -290,3 +290,5 @@ No parameters are required there. Use this method to give back the default metho
 |chatId|Telegram chat or group id|number|none (mandatory)|
 |template|Message template in mustache format|string|[Basic template](https://github.com/dm112-tadbox/log-vault/blob/0113fa875077f51e613a251e31a9c2e1875653da/src/notificator/channels/TelegramNotificationChannel.ts#L11)|
 |workerOptions|BullMQ Worker options|[WorkerOptions](https://github.com/taskforcesh/bullmq/blob/096bd810fcd5e4d923b0968bec7a4fc992c5e8a6/src/interfaces/worker-options.ts#L16)| { limiter: { max: 1, duration: 5000 } } |
+|matchPatterns|A set of patterns to match in log message to trigger the message sending|[MatchPattern](https://github.com/dm112-tadbox/log-vault/blob/d6f99292451134ffcd35770b11c3aff212000a28/src/types.ts#L79)|[ ]|
+|inspectOptions|Node's util.inspect options to render the message object|[InspectOptions](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/ad269d398919f2ce037a01b50947d1e5e030508e/types/node/v18/util.d.ts#L13)|{ compact: false, maxArrayLength: 5, maxStringLength: 2048, depth: 5,  colors: true}|

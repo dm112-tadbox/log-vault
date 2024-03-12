@@ -775,7 +775,7 @@ describe("mongo transport", () => {
         process: "log-vault",
         environment: "test"
       },
-      message: ["This is a test", { a: 1 }]
+      message: '[\n  "This is a test",\n  {\n    "a": 1\n  }\n]'
     });
   });
 
@@ -807,7 +807,7 @@ describe("mongo transport", () => {
     });
   });
 
-  it("log to file: shrink long strings", async () => {
+  it("log to mongo: shrink long strings", async () => {
     logger.info("a".repeat(4096));
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -822,7 +822,7 @@ describe("mongo transport", () => {
     });
   });
 
-  it("log to file: custom meta", async () => {
+  it("log to mongo: custom meta", async () => {
     logger.info(
       "A log record",
       new LogOptions({ meta: { myCustomKey: "value" } }),
@@ -838,11 +838,11 @@ describe("mongo transport", () => {
         environment: "test",
         myCustomKey: "value"
       },
-      message: ["A log record", "something else"]
+      message: '[\n  "A log record",\n  "something else"\n]'
     });
   });
 
-  it("log to file: mask sensitive field: password", async () => {
+  it("log to mongo: mask sensitive field: password", async () => {
     logger.info({
       user: "username",
       password: "P@ssw0rd"
@@ -860,7 +860,7 @@ describe("mongo transport", () => {
     });
   });
 
-  it("log to file: capture a single string", async () => {
+  it("log to mongo: capture a single string", async () => {
     console.log("logging with console.log");
     expect(spy).toHaveBeenCalledTimes(1);
     logVault.uncaptureConsole();
@@ -876,7 +876,7 @@ describe("mongo transport", () => {
     });
   });
 
-  it("log to file: capture different entities", async () => {
+  it("log to mongo: capture different entities", async () => {
     console.log("this is an object:", { some: "data" }, [1, 2]);
     expect(spy).toHaveBeenCalledTimes(1);
     logVault.uncaptureConsole();
@@ -888,7 +888,72 @@ describe("mongo transport", () => {
         process: "log-vault",
         environment: "test"
       },
-      message: ["this is an object:", { some: "data" }, [1, 2]]
+      message:
+        "[\n" +
+        '  "this is an object:",\n' +
+        "  {\n" +
+        '    "some": "data"\n' +
+        "  },\n" +
+        "  [\n" +
+        "    1,\n" +
+        "    2\n" +
+        "  ]\n" +
+        "]"
+    });
+  });
+
+  it("log to mongo: nested object", async () => {
+    logger.info("An error occured", {
+      request: {
+        headers: {
+          "content-type": "application/json"
+        },
+        body: {
+          login: "sdjkjasdh",
+          password: "P@ssw0rd"
+        }
+      },
+      response: {
+        header: {
+          id: null,
+          status: "ERROR"
+        },
+        error: {
+          code: "INPDATAFORMAT",
+          message: "Input data format is incorrect"
+        }
+      }
+    });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual({
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
+      level: "info",
+      meta: { project: "log-vault", process: "log-vault", environment: "test" },
+      message:
+        "[\n" +
+        '  "An error occured",\n' +
+        "  {\n" +
+        '    "request": {\n' +
+        '      "headers": {\n' +
+        '        "content-type": "application/json"\n' +
+        "      },\n" +
+        '      "body": {\n' +
+        '        "login": "sdjkjasdh",\n' +
+        '        "password": "...[Masked]"\n' +
+        "      }\n" +
+        "    },\n" +
+        '    "response": {\n' +
+        '      "header": {\n' +
+        '        "id": null,\n' +
+        '        "status": "ERROR"\n' +
+        "      },\n" +
+        '      "error": {\n' +
+        '        "code": "INPDATAFORMAT",\n' +
+        '        "message": "Input data format is incorrect"\n' +
+        "      }\n" +
+        "    }\n" +
+        "  }\n" +
+        "]"
     });
   });
 });
