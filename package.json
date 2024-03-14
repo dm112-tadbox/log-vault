@@ -1,6 +1,6 @@
 {
   "name": "log-vault",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A generator of Winston logger instance with pre-defined configurable transports and formats and extra functionality.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

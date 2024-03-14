@@ -104,14 +104,15 @@ export interface TelegramNotificationChannelOptions
   host?: string;
   template?: string;
   workerOptions?: Partial<WorkerOptions>;
+  queueOptions?: Partial<QueueOptions>;
 }
 
 export interface NotificationChannelProcessOpts {
   processor: Processor;
   workerOptions?: Partial<WorkerOptions>;
   queueName: string;
-  queueOptions?: Partial<QueueOptions>; // optional
-  jobOptions?: RedisJobOptions; // optional
+  queueOptions?: Partial<QueueOptions>;
+  jobOptions?: RedisJobOptions;
 }
 
 export interface NotificationTransportOptions

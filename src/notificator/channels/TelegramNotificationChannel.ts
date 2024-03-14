@@ -96,6 +96,7 @@ export class TelegramNotificationChannel extends NotificationChannel {
       host = "https://api.telegram.org/bot",
       token,
       workerOptions = {},
+      queueOptions = {},
       chatId,
       template = basicTemplate
     } = opts;
@@ -127,7 +128,8 @@ export class TelegramNotificationChannel extends NotificationChannel {
           duration: 5000
         },
         ...workerOptions
-      }
+      },
+      queueOptions
     });
   }
 }
