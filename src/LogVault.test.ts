@@ -357,6 +357,18 @@ describe("console transport:catching exceptions and rejections", () => {
     });
   });
 
+  it("mask fields in exception", () => {
+    const buf = execSync("ts-node ./src/test-files/errorWithSensitiveField.ts");
+    const out = formatOutput(buf);
+    expect(out).toEqual({
+      name: "Error",
+      message: '{"user":"test@mail.com","password":"...[Masked]"}',
+      stack: expect.stringMatching(
+        /Error:\s{"user":"test@mail.com","password":"secret"}\n/s
+      )
+    });
+  });
+
   function formatOutput(buf: Buffer): any {
     const decolorized = stripColor(buf.toString());
     const matched = decolorized.match(
