@@ -325,7 +325,7 @@ describe("console transport:catching exceptions and rejections", () => {
           forcedJSONParsing: true,
           clarifyTimeoutError: false
         },
-        adapter: ["xhr", "http"],
+        adapter: ["xhr", "http", "fetch"],
         transformRequest: [],
         transformResponse: [],
         timeout: 100,
@@ -336,14 +336,13 @@ describe("console transport:catching exceptions and rejections", () => {
         env: {},
         headers: {
           Accept: "application/json, text/plain, */*",
-          "User-Agent": "axios/1.6.7",
+          "User-Agent": "axios/1.7.7",
           "Accept-Encoding": "gzip, compress, deflate, br"
         },
         method: "get",
         url: "http://localhost:0000"
       },
-      code: "ECONNABORTED",
-      status: null
+      code: "ECONNABORTED"
     });
   });
 
@@ -571,12 +570,12 @@ describe("files transport", () => {
         message: {
           code: "ECONNABORTED",
           config: {
-            adapter: ["xhr", "http"],
+            adapter: ["xhr", "http", "fetch"],
             env: {},
             headers: {
               Accept: "application/json, text/plain, */*",
               "Accept-Encoding": "gzip, compress, deflate, br",
-              "User-Agent": "axios/1.6.7"
+              "User-Agent": "axios/1.7.7"
             },
             maxBodyLength: -1,
             maxContentLength: -1,
@@ -597,8 +596,7 @@ describe("files transport", () => {
           name: "AxiosError",
           stack: expect.stringMatching(
             /AxiosError:\stimeout\sof\s100ms\sexceeded\n/s
-          ),
-          status: null
+          )
         },
         meta: {
           environment: "test",
@@ -1191,6 +1189,7 @@ describe("notifications transport", () => {
       .spyOn(notificationsTransport, "log")
       .mockImplementation((data) => {
         output = data;
+        return Promise.resolve();
       });
   });
 

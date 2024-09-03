@@ -103,7 +103,7 @@ export class TelegramNotificationChannel extends NotificationChannel {
     const baseURL = new URL(`/bot${token}`, host).toString();
 
     this.process({
-      queueName: `${token}:${chatId}`,
+      queueName: `${token}.${chatId}`,
       processor: async (job: Job) => {
         try {
           const log: NotificatonTransportLogItem = job.data;

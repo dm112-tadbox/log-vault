@@ -18,14 +18,17 @@ describe("e2e tests: LogVault with Notificator", () => {
   let logVault: LogVault;
   let timestamp: string;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     await startMockServer();
+  });
+
+  afterAll(async () => {
+    await mockServer.close();
   });
 
   afterEach(() => {
     tgRequestBody = undefined;
     notificator.stop();
-    mockServer.close();
     jest.clearAllMocks();
   });
 
@@ -238,7 +241,7 @@ describe("e2e tests: LogVault with Notificator", () => {
   }
 
   async function waitForProcessTest() {
-    const processed = await waitForProcess(`${testToken}:${testChatId}`);
+    const processed = await waitForProcess(`${testToken}.${testChatId}`);
     timestamp = processed.timestamp.replace(
       /([|{[\]*_~}+)(#>!=\-.])/gm,
       "\\$1"

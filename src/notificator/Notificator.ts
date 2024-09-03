@@ -16,7 +16,9 @@ export class Notificator {
       queueName,
       async (job: Job) => {
         const matchedChannels = matchPattern(job.data, this.channels);
-        return Promise.all(matchedChannels.map((c) => c.addToQueue(job.data)));
+        return await Promise.all(
+          matchedChannels.map((c) => c.addToQueue(job.data))
+        );
       },
       {
         connection: defaultRedisConnection,

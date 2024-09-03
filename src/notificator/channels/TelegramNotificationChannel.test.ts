@@ -9,11 +9,11 @@ const mockPort = 2654;
 let tgRequestBody: any;
 
 describe("TelegramNotificationChannel class", () => {
-  beforeEach(async () => {
+  beforeAll(async () => {
     await startMockServer();
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     mockServer.close();
   });
 
@@ -31,7 +31,7 @@ describe("TelegramNotificationChannel class", () => {
       }
     });
 
-    telegramChannel.addToQueue({
+    await telegramChannel.addToQueue({
       timestamp: "2024-01-30T11:47:03.633Z",
       level: "error",
       message: "An error appear!",
@@ -41,7 +41,7 @@ describe("TelegramNotificationChannel class", () => {
         project: "LogVault"
       }
     });
-    const processed = await waitForProcess("unittesttoken:1");
+    const processed = await waitForProcess("unittesttoken.1");
 
     expect(processed).toEqual({
       meta: {
@@ -68,6 +68,8 @@ describe("TelegramNotificationChannel class", () => {
         "```",
       parse_mode: "MarkdownV2"
     });
+
+    await telegramChannel.stop();
   });
 });
 
