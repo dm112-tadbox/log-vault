@@ -11,5 +11,6 @@ module.exports = {
   collectCoverageFrom: ["<rootDir>/src/**/*.ts", "!<rootDir>/src/**/index.ts"],
   moduleFileExtensions: ["ts", "js"],
   coverageReporters: ["json", "lcov", "html"],
-  testMatch: ["<rootDir>/src/**/*.test.ts"]
+  testMatch: ["<rootDir>/src/**/*.test.ts"],
+  maxWorkers: 1
 };

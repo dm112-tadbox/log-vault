@@ -3,24 +3,19 @@ import { waitForProcess } from "../../test-files/util/waitForProcess";
 import { Server, IncomingMessage, ServerResponse } from "http";
 import bodyParser from "body-parser";
 import { TelegramNotificationChannel } from "./TelegramNotificationChannel";
+import { redisCleanup } from "../../test-files/util/redisCleanup";
 
 let mockServer: Server<typeof IncomingMessage, typeof ServerResponse>;
 const mockPort = 2654;
 let tgRequestBody: any;
 
 describe("TelegramNotificationChannel class", () => {
+  let telegramChannel: TelegramNotificationChannel;
+
   beforeAll(async () => {
-    await startMockServer();
-  });
-
-  afterAll(async () => {
-    mockServer.close();
-  });
-
-  it("TelegramNotificationChannel", async () => {
-    const telegramChannel = new TelegramNotificationChannel({
+    telegramChannel = new TelegramNotificationChannel({
       host: `http://localhost:${mockPort}`,
-      token: "unittesttoken",
+      token: "111111:HJKFGJKGjhgjhg",
       chatId: 1,
       matchPatterns: [],
       workerOptions: {
@@ -30,7 +25,16 @@ describe("TelegramNotificationChannel class", () => {
         }
       }
     });
+    await redisCleanup(telegramChannel.queueName);
+    await startMockServer();
+  });
 
+  afterAll(async () => {
+    await redisCleanup(telegramChannel.queueName);
+    await stopMockServer(mockServer);
+  });
+
+  it("TelegramNotificationChannel", async () => {
     await telegramChannel.addToQueue({
       timestamp: "2024-01-30T11:47:03.633Z",
       level: "error",
@@ -41,7 +45,8 @@ describe("TelegramNotificationChannel class", () => {
         project: "LogVault"
       }
     });
-    const processed = await waitForProcess("unittesttoken.1");
+
+    const processed = await waitForProcess(telegramChannel.queueName);
 
     expect(processed).toEqual({
       meta: {
@@ -82,5 +87,19 @@ function startMockServer() {
       return res.status(200).end();
     });
     mockServer = app.listen(mockPort, () => resolve(true));
+    mockServer.on("error", (e: any) => {
+      throw new Error(e);
+    });
+  });
+}
+
+function stopMockServer(
+  mockServer: Server<typeof IncomingMessage, typeof ServerResponse>
+) {
+  return new Promise((resolve, reject) => {
+    mockServer.close((err) => {
+      if (err) reject(err);
+      else resolve(true);
+    });
   });
 }

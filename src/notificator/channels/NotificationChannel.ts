@@ -67,6 +67,7 @@ export class NotificationChannel extends EventEmitter {
   }
 
   public async stop() {
-    await this.queue?.close();
+    await this.queue?.obliterate();
+    await this.worker?.close();
   }
 }

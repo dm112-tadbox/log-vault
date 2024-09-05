@@ -5,6 +5,7 @@ import { Logger } from "winston";
 import { LogVault, Notificator, TelegramNotificationChannel } from ".";
 import { waitForProcess } from "./test-files/util/waitForProcess";
 import { wait } from "./test-files/util/wait";
+import { redisCleanup } from "./test-files/util/redisCleanup";
 
 const testToken = "testToken";
 const testChatId = 1;
@@ -26,10 +27,15 @@ describe("e2e tests: LogVault with Notificator", () => {
     await mockServer.close();
   });
 
-  afterEach(() => {
+  beforeEach(async () => {
+    await redisCleanup(`${testToken}.${testChatId}`);
+  });
+
+  afterEach(async () => {
     tgRequestBody = undefined;
     notificator.stop();
     jest.clearAllMocks();
+    await redisCleanup(`${testToken}.${testChatId}`);
   });
 
   it("e2e:send notification to Telegram, matched by level", async () => {

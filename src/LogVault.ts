@@ -180,6 +180,7 @@ export class LogVault {
           formatMeta(),
           formatLoki()
         ),
+        useWinstonMetaAsLabels: true,
         ...opts
       })
     );
