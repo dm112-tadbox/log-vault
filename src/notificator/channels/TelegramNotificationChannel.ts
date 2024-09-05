@@ -89,6 +89,9 @@ function shrinkStringSize(
 }
 
 export class TelegramNotificationChannel extends NotificationChannel {
+  token: string;
+  chatId: number;
+
   constructor(opts: TelegramNotificationChannelOptions) {
     super(opts);
 
@@ -102,8 +105,11 @@ export class TelegramNotificationChannel extends NotificationChannel {
     } = opts;
     const baseURL = new URL(`/bot${token}`, host).toString();
 
+    this.token = token;
+    this.chatId = chatId;
+
     this.process({
-      queueName: `${token}.${chatId}`,
+      queueName: this.queueName,
       processor: async (job: Job) => {
         try {
           const log: NotificatonTransportLogItem = job.data;
@@ -131,5 +137,10 @@ export class TelegramNotificationChannel extends NotificationChannel {
       },
       queueOptions
     });
+  }
+
+  get queueName() {
+    const sanitizedToken = this.token.replace(":", ".");
+    return `${sanitizedToken}.${this.chatId}`;
   }
 }
