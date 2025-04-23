@@ -173,7 +173,6 @@ export class LogVault {
         host: "http://localhost:3100",
         json: true,
         format: format.combine(
-          format.json(),
           format.timestamp({ format: defaultTimestamp }),
           formatCustomOptions(),
           formatError(),
