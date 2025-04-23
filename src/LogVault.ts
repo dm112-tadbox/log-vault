@@ -57,6 +57,7 @@ export class LogVault {
     this.logger = createLogger({
       levels: defaultLevels,
       level: "http",
+      format: format.errors({ stack: true }),
       exitOnError: false,
       defaultMeta: {
         [META]: this.defaultMeta
@@ -172,6 +173,7 @@ export class LogVault {
         host: "http://localhost:3100",
         json: true,
         format: format.combine(
+          format.json(),
           format.timestamp({ format: defaultTimestamp }),
           formatCustomOptions(),
           formatError(),

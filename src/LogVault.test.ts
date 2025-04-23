@@ -1360,3 +1360,47 @@ describe("notifications transport", () => {
     });
   });
 });
+
+describe("fix: empty log message on catched error", () => {
+  let output: any;
+  let logger: Logger;
+  let logVault: LogVault;
+  let spy: any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    logVault = new LogVault().withLoki();
+    logger = logVault.logger;
+    const loki = logger.transports.find((t) => t instanceof LokiTransport);
+    if (!loki) throw new Error("Couldn't assign Loki transport");
+    spy = jest.spyOn(loki, "log").mockImplementation((data) => {
+      output = data;
+    });
+  });
+
+  afterEach(() => {
+    if (logger) {
+      const transport = logger.transports.find(
+        (t) => t instanceof LokiTransport
+      );
+      if (transport) {
+        logger.exceptions.unhandle(transport);
+        logger.rejections.unhandle(transport);
+        process.removeAllListeners("uncaughtException");
+        process.removeAllListeners("unhandledRejection");
+      }
+    }
+  });
+
+  it("catch and log an error", async () => {
+    try {
+      throw new Error("Test error");
+    } catch (e) {
+      logger.warn(e);
+    }
+    expect(spy).toHaveBeenCalledTimes(1);
+    const content = output.message.content;
+    expect(content[0]).toEqual("Test error");
+    expect(content[1].stack).toBeDefined();
+  });
+});
