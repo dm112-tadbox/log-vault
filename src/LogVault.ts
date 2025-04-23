@@ -57,6 +57,7 @@ export class LogVault {
     this.logger = createLogger({
       levels: defaultLevels,
       level: "http",
+      format: format.errors({ stack: true }),
       exitOnError: false,
       defaultMeta: {
         [META]: this.defaultMeta
