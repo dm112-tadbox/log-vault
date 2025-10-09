@@ -31,7 +31,7 @@
   "license": "ISC",
   "dependencies": {
     "@common.js/serialize-error": "^11.0.3",
-    "axios": "1.7.7",
+    "axios": "^1.12.2",
     "bullmq": "5.12.12",
     "mustache": "^4.2.0",
     "obj-walker": "^1.10.0",
