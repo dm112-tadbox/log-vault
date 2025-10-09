@@ -67,6 +67,34 @@ const { logger } = new LogVault({
 });
 ```
 
+#### Masking sensitive data in text (v2.1.0 feature)
+Masking of sensitive data by object key may not be enough for the cases when the secrets are exposed in string, like network connection strings or url queries.
+As the solution, an additional parameter, "replacers" may be provided to the maskOptions. It should contain a set of regular expressions and replacer functions.
+
+Example (this is a default replacer, masking credentials in the connections strings):
+```ts
+import { LogVault, LogOptions } from 'log-vault';
+
+const { logger } = new LogVault({
+  maskOptions: {
+    replacers: [
+      [
+        /\b([a-z][a-z0-9+\-.]*:\/\/)([^:@\s]+):([^@\s]+)(@)/gi,
+        (_match, protocol, user, _password, at) => {
+          return `${protocol}${defaultMaskLabel}:${defaultMaskLabel}${at}`;
+        }
+      ]
+    ]
+  }
+});
+
+logger.log("Failed to connect to MongoDB at mongodb+srv://username:db_password@cluster0.knoxu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+
+// Output: info: Failed to connect to MongoDB at mongodb+srv://...[Masked]:...[Masked]@cluster0.knoxu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+
+```
+
+
 ### Truncating nested data
 Limit the nested level of the information to keep you log messages light and simple. There is a configuration that is applied by the default, but you may override this:
 ```ts

@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "babel src --out-dir ./dist --source-maps --watch",
-    "test": "jest --forceExit --runInBand",
+    "test": "jest --forceExit  --verbose --runInBand",
     "test:watch": "jest --watch --forceExit --runInBand --detectOpenHandles",
     "test:coverage": "jest --coverage",
     "lint": "eslint --fix . --ext .ts",
