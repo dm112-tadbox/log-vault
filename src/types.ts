@@ -32,7 +32,10 @@ export interface LogVaultFormatArrangeOutput {
 export interface LogVaultMaskFieldsOptions {
   fields: string[];
   maskLabel?: string;
+  replacers?: ITextReplacer[]  
 }
+
+export type ITextReplacer = [RegExp, (substring: string, ...args: any[]) => string]
 
 export interface LogVaultCaptureConsoleOptions {
   matchLevels: {

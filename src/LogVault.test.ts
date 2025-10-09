@@ -178,6 +178,22 @@ describe("console transport: logging", () => {
     );
   });
 
+  it("console: mask mongodb connection string by default", () => {
+    const { logger } = new LogVault().withConsole();
+    const spy = getConsoleSpy(logger);
+    logger.info(`Failed to connect to MongoDB at mongodb+srv://username:db_password@cluster0.knoxu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info: Failed to connect to MongoDB at mongodb+srv://...[Masked]:...[Masked]@cluster0.knoxu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+  });
+
+  it("console: mask postgres connection string by default", () => {
+    const { logger } = new LogVault().withConsole();
+    const spy = getConsoleSpy(logger);
+    logger.info(`postgresql://root:secret@dbname.dwktu38uygj.eu-north-1.rds.amazonaws.com:5432/postgres`);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(output).toEqual("info: postgresql://...[Masked]:...[Masked]@dbname.dwktu38uygj.eu-north-1.rds.amazonaws.com:5432/postgres")
+  });
+
   it("console: do not mask any field", () => {
     const { logger } = new LogVault({
       maskOptions: { fields: [] }
