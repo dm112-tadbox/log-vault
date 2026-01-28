@@ -6,7 +6,7 @@ new LogVault().withConsole();
 (async function () {
   await axios({
     method: "get",
-    url: "http://localhost:0000",
+    url: "http://10.255.255.1",
     timeout: 100
   });
 })();
