@@ -5,3 +5,5 @@ src
 jest.config.js
 tsconfig.json
 doc
+.github
+.vscode
