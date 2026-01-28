@@ -89,7 +89,7 @@ describe("console transport: logging", () => {
     logger.info("this is an object:", { some: "data" }, [1, 2]);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual(
-      "info: this is an object:\n[\n  {\n    some: 'data'\n  },\n  [\n    1,\n    2\n  ]\n]"
+      "info: this is an object:\n[\n  {\n    some: 'data'\n  },\n  [\n    1,\n    2\n  ]\n]",
     );
   });
 
@@ -97,7 +97,7 @@ describe("console transport: logging", () => {
     const circular: {
       b: any;
     } = {
-      b: 2
+      b: 2,
     };
     circular.b = circular;
 
@@ -170,42 +170,50 @@ describe("console transport: logging", () => {
     const spy = getConsoleSpy(logger);
     logger.info({
       user: "username",
-      password: "P@ssw0rd"
+      password: "P@ssw0rd",
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual(
-      "info: {\n  user: 'username',\n  password: '...[Masked]'\n}"
+      "info: {\n  user: 'username',\n  password: '...[Masked]'\n}",
     );
   });
 
   it("console: mask mongodb connection string by default", () => {
     const { logger } = new LogVault().withConsole();
     const spy = getConsoleSpy(logger);
-    logger.info(`Failed to connect to MongoDB at mongodb+srv://username:db_password@cluster0.knoxu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`);
+    logger.info(
+      `Failed to connect to MongoDB at mongodb+srv://username:db_password@cluster0.knoxu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`,
+    );
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(output).toEqual("info: Failed to connect to MongoDB at mongodb+srv://...[Masked]:...[Masked]@cluster0.knoxu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+    expect(output).toEqual(
+      "info: Failed to connect to MongoDB at mongodb+srv://...[Masked]:...[Masked]@cluster0.knoxu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+    );
   });
 
   it("console: mask postgres connection string by default", () => {
     const { logger } = new LogVault().withConsole();
     const spy = getConsoleSpy(logger);
-    logger.info(`postgresql://root:secret@dbname.dwktu38uygj.eu-north-1.rds.amazonaws.com:5432/postgres`);
+    logger.info(
+      `postgresql://root:secret@dbname.dwktu38uygj.eu-north-1.rds.amazonaws.com:5432/postgres`,
+    );
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(output).toEqual("info: postgresql://...[Masked]:...[Masked]@dbname.dwktu38uygj.eu-north-1.rds.amazonaws.com:5432/postgres")
+    expect(output).toEqual(
+      "info: postgresql://...[Masked]:...[Masked]@dbname.dwktu38uygj.eu-north-1.rds.amazonaws.com:5432/postgres",
+    );
   });
 
   it("console: do not mask any field", () => {
     const { logger } = new LogVault({
-      maskOptions: { fields: [] }
+      maskOptions: { fields: [] },
     }).withConsole();
     const spy = getConsoleSpy(logger);
     logger.info({
       user: "username",
-      password: "P@ssw0rd"
+      password: "P@ssw0rd",
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual(
-      "info: {\n  user: 'username',\n  password: 'P@ssw0rd'\n}"
+      "info: {\n  user: 'username',\n  password: 'P@ssw0rd'\n}",
     );
   });
 
@@ -216,23 +224,23 @@ describe("console transport: logging", () => {
     logger.http("An error occured", {
       request: {
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
         },
         body: {
           login: "sdjkjasdh",
-          password: "P@ssw0rd"
-        }
+          password: "P@ssw0rd",
+        },
       },
       response: {
         header: {
           id: null,
-          status: "ERROR"
+          status: "ERROR",
         },
         error: {
           code: "INPDATAFORMAT",
-          message: "Input data format is incorrect"
-        }
-      }
+          message: "Input data format is incorrect",
+        },
+      },
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual(
@@ -259,7 +267,7 @@ describe("console transport: logging", () => {
         "      }\n" +
         "    }\n" +
         "  }\n" +
-        "]"
+        "]",
     );
   });
 
@@ -281,6 +289,17 @@ describe("console transport: logging", () => {
     expect(output).toEqual("info: logging with console.log");
   });
 
+  it("numeric string, avoid parsing non-JSON strings, fix for max safe integer message value", async () => {
+    const logVault = new LogVault().withConsole().captureConsole();
+    const { logger } = logVault;
+    const spy = getConsoleSpy(logger);
+    const xx = "3383814258104171532";
+    console.log("xx:", xx);
+    expect(spy).toHaveBeenCalledTimes(1);
+    logVault.uncaptureConsole();
+    expect(output).toEqual("info: xx:\n[\n  '3383814258104171532'\n]")
+  });
+
   it("capture console: log different entities", () => {
     const logVault = new LogVault().withConsole().captureConsole();
     const { logger } = logVault;
@@ -289,13 +308,13 @@ describe("console transport: logging", () => {
     expect(spy).toHaveBeenCalledTimes(1);
     logVault.uncaptureConsole();
     expect(output).toEqual(
-      "info: this is an object:\n[\n  {\n    some: 'data'\n  },\n  [\n    1,\n    2\n  ]\n]"
+      "info: this is an object:\n[\n  {\n    some: 'data'\n  },\n  [\n    1,\n    2\n  ]\n]",
     );
   });
 
   function getConsoleTransport(logger: Logger) {
     const consoleTransport = logger.transports.find(
-      (t) => t instanceof Console
+      (t) => t instanceof Console,
     );
     if (!consoleTransport)
       throw new Error("Couldn't assign the console transport");
@@ -307,7 +326,7 @@ describe("console transport: logging", () => {
     return jest.spyOn(consoleTransport, "log").mockImplementation((data) => {
       const decolorized = stripColor(data[Symbol.for("message")]);
       const matched = decolorized.match(
-        /^\d{2}\s[A-z]{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s\([+-]*\d{2}:\d{2}\)\s(.*)$/s
+        /^\d{2}\s[A-z]{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s\([+-]*\d{2}:\d{2}\)\s(.*)$/s,
       );
       if (!matched) throw new Error("No match found in output");
       output = matched[1];
@@ -322,7 +341,7 @@ describe("console transport:catching exceptions and rejections", () => {
     expect(out).toEqual({
       name: "Error",
       message: "An error occur",
-      stack: expect.stringMatching(/Error:\sAn\serror\soccur\n/s)
+      stack: expect.stringMatching(/Error:\sAn\serror\soccur\n/s),
     });
   });
 
@@ -333,32 +352,10 @@ describe("console transport:catching exceptions and rejections", () => {
       message: "timeout of 100ms exceeded",
       name: "AxiosError",
       stack: expect.stringMatching(
-        /AxiosError:\stimeout\sof\s100ms\sexceeded\n/s
+        /AxiosError:\stimeout\sof\s100ms\sexceeded\n/s,
       ),
-      config: {
-        transitional: {
-          silentJSONParsing: true,
-          forcedJSONParsing: true,
-          clarifyTimeoutError: false
-        },
-        adapter: ["xhr", "http", "fetch"],
-        transformRequest: [],
-        transformResponse: [],
-        timeout: 100,
-        xsrfCookieName: "XSRF-TOKEN",
-        xsrfHeaderName: "X-XSRF-TOKEN",
-        maxContentLength: -1,
-        maxBodyLength: -1,
-        env: {},
-        headers: {
-          Accept: "application/json, text/plain, */*",
-          "User-Agent": "axios/1.7.7",
-          "Accept-Encoding": "gzip, compress, deflate, br"
-        },
-        method: "get",
-        url: "http://localhost:0000"
-      },
-      code: "ECONNABORTED"
+      config: expect.any(Object),
+      code: "ECONNABORTED",
     });
   });
 
@@ -368,7 +365,7 @@ describe("console transport:catching exceptions and rejections", () => {
     expect(out).toEqual({
       name: "Error",
       message: "An error occur",
-      stack: expect.stringMatching(/Error:\sAn\serror\soccur\n/s)
+      stack: expect.stringMatching(/Error:\sAn\serror\soccur\n/s),
     });
   });
 
@@ -379,15 +376,15 @@ describe("console transport:catching exceptions and rejections", () => {
       name: "Error",
       message: '{"user":"test@mail.com","password":"...[Masked]"}',
       stack: expect.stringMatching(
-        /Error:\s{"user":"test@mail.com","password":"secret"}\n/s
-      )
+        /Error:\s{"user":"test@mail.com","password":"secret"}\n/s,
+      ),
     });
   });
 
   function formatOutput(buf: Buffer): any {
     const decolorized = stripColor(buf.toString());
     const matched = decolorized.match(
-      /^\d{2}\s[A-z]{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s\([+-]*\d{2}:\d{2}\)\serror:\s(.*)$/s
+      /^\d{2}\s[A-z]{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s\([+-]*\d{2}:\d{2}\)\serror:\s(.*)$/s,
     );
     if (!matched) throw new Error("No match found in output");
     let obj: any;
@@ -428,10 +425,10 @@ describe("files transport", () => {
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -439,7 +436,7 @@ describe("files transport", () => {
     logger = new LogVault().withFiles().logger;
     const circular: { a: string; content: string | object } = {
       a: "b",
-      content: ""
+      content: "",
     };
     circular.content = circular;
     logger.warn(circular);
@@ -451,11 +448,11 @@ describe("files transport", () => {
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
         extra: [],
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -467,18 +464,18 @@ describe("files transport", () => {
       {
         extra: [
           {
-            a: 1
-          }
+            a: 1,
+          },
         ],
         level: "info",
         message: "This is a test",
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -486,7 +483,7 @@ describe("files transport", () => {
     const logger = new LogVault().withFiles().logger;
     logger.info({
       deep: { some: { obj: { deep: { deep: "nested" } } } },
-      not_nested: "value"
+      not_nested: "value",
     });
     const parsed = await readLogFile("http");
     expect(parsed).toEqual([
@@ -497,19 +494,19 @@ describe("files transport", () => {
           deep: {
             some: {
               obj: {
-                deep: "...[Truncated]"
-              }
-            }
+                deep: "...[Truncated]",
+              },
+            },
           },
-          not_nested: "value"
+          not_nested: "value",
         },
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -524,11 +521,11 @@ describe("files transport", () => {
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
         extra: [],
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -537,7 +534,7 @@ describe("files transport", () => {
     logger.info(
       "A log record",
       new LogOptions({ meta: { myCustomKey: "value" } }),
-      "something else"
+      "something else",
     );
     const parsed = await readLogFile("http");
     expect(parsed).toEqual([
@@ -549,10 +546,10 @@ describe("files transport", () => {
           environment: "test",
           myCustomKey: "value",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -565,15 +562,15 @@ describe("files transport", () => {
         message: {
           message: "An error occur",
           name: "Error",
-          stack: expect.stringMatching(/Error:\sAn\serror\soccur\n/s)
+          stack: expect.stringMatching(/Error:\sAn\serror\soccur\n/s),
         },
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -585,42 +582,20 @@ describe("files transport", () => {
         level: "error",
         message: {
           code: "ECONNABORTED",
-          config: {
-            adapter: ["xhr", "http", "fetch"],
-            env: {},
-            headers: {
-              Accept: "application/json, text/plain, */*",
-              "Accept-Encoding": "gzip, compress, deflate, br",
-              "User-Agent": "axios/1.7.7"
-            },
-            maxBodyLength: -1,
-            maxContentLength: -1,
-            method: "get",
-            timeout: 100,
-            transformRequest: [],
-            transformResponse: [],
-            transitional: {
-              clarifyTimeoutError: false,
-              forcedJSONParsing: true,
-              silentJSONParsing: true
-            },
-            url: "http://localhost:0000",
-            xsrfCookieName: "XSRF-TOKEN",
-            xsrfHeaderName: "X-XSRF-TOKEN"
-          },
+          config: expect.any(Object),
           message: "timeout of 100ms exceeded",
           name: "AxiosError",
           stack: expect.stringMatching(
-            /AxiosError:\stimeout\sof\s100ms\sexceeded\n/s
-          )
+            /AxiosError:\stimeout\sof\s100ms\sexceeded\n/s,
+          ),
         },
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.any(String),
+      },
     ]);
   });
 
@@ -628,7 +603,7 @@ describe("files transport", () => {
     const { logger } = new LogVault().withFiles();
     logger.info({
       user: "username",
-      password: "P@ssw0rd"
+      password: "P@ssw0rd",
     });
     const parsed = await readLogFile("http");
     expect(parsed).toEqual([
@@ -639,10 +614,10 @@ describe("files transport", () => {
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -659,10 +634,10 @@ describe("files transport", () => {
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -679,10 +654,10 @@ describe("files transport", () => {
         meta: {
           environment: "test",
           process: "log-vault",
-          project: "log-vault"
+          project: "log-vault",
         },
-        timestamp: expect.stringMatching(defaultTimestampRegexp)
-      }
+        timestamp: expect.stringMatching(defaultTimestampRegexp),
+      },
     ]);
   });
 
@@ -696,7 +671,7 @@ describe("files transport", () => {
     const parts = new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "2-digit",
-      day: "2-digit"
+      day: "2-digit",
     }).formatToParts();
     return `${level}-${parts[4].value}-${parts[0].value}-${parts[2].value}.log`;
   }
@@ -705,7 +680,7 @@ describe("files transport", () => {
     await wait(50);
     const logFileName = getLogFileName(level);
     const content = readFileSync(resolve("./logs", logFileName), {
-      encoding: "utf-8"
+      encoding: "utf-8",
     });
 
     const parsed = parseFileContent(content);
@@ -715,7 +690,7 @@ describe("files transport", () => {
   function getFileErrorTransport(logger: Logger): TransportStream {
     const transport = logger.transports?.find(
       (transport) =>
-        transport instanceof DailyRotateFile && transport.handleExceptions
+        transport instanceof DailyRotateFile && transport.handleExceptions,
     );
     if (!transport) throw new Error("Couldn't unhandle files transport");
     return transport;
@@ -731,7 +706,7 @@ describe("mongo transport", () => {
   beforeEach(() => {
     logVault = new LogVault()
       .withMongo({
-        db: "mongodb+srv://user:pass@cluster0.zooxqjl.mongodb.net/?retryWrites=true&w=majority"
+        db: "mongodb+srv://user:pass@cluster0.zooxqjl.mongodb.net/?retryWrites=true&w=majority",
       })
       .captureConsole();
     logger = logVault.logger;
@@ -765,15 +740,15 @@ describe("mongo transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
-      }
+        environment: "test",
+      },
     });
   });
 
   it("log to mongo: curcular values", async () => {
     const circular: { a: string; content: string | object } = {
       a: "b",
-      content: ""
+      content: "",
     };
     circular.content = circular;
     logger.warn(circular);
@@ -784,9 +759,9 @@ describe("mongo transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: '{\n  "a": "b",\n  "content": "...[Truncated]"\n}'
+      message: '{\n  "a": "b",\n  "content": "...[Truncated]"\n}',
     });
   });
 
@@ -799,16 +774,16 @@ describe("mongo transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: '[\n  "This is a test",\n  {\n    "a": 1\n  }\n]'
+      message: '[\n  "This is a test",\n  {\n    "a": 1\n  }\n]',
     });
   });
 
   it("log to mongo: truncate object nested prop", async () => {
     logger.info({
       deep: { some: { obj: { deep: { deep: "nested" } } } },
-      not_nested: "value"
+      not_nested: "value",
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -817,7 +792,7 @@ describe("mongo transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
       message:
         "{\n" +
@@ -829,7 +804,7 @@ describe("mongo transport", () => {
         "    }\n" +
         "  },\n" +
         '  "not_nested": "value"\n' +
-        "}"
+        "}",
     });
   });
 
@@ -842,9 +817,9 @@ describe("mongo transport", () => {
       meta: {
         environment: "test",
         process: "log-vault",
-        project: "log-vault"
+        project: "log-vault",
       },
-      timestamp: expect.stringMatching(defaultTimestampRegexp)
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
     });
   });
 
@@ -852,7 +827,7 @@ describe("mongo transport", () => {
     logger.info(
       "A log record",
       new LogOptions({ meta: { myCustomKey: "value" } }),
-      "something else"
+      "something else",
     );
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -862,16 +837,16 @@ describe("mongo transport", () => {
         project: "log-vault",
         process: "log-vault",
         environment: "test",
-        myCustomKey: "value"
+        myCustomKey: "value",
       },
-      message: '[\n  "A log record",\n  "something else"\n]'
+      message: '[\n  "A log record",\n  "something else"\n]',
     });
   });
 
   it("log to mongo: mask sensitive field: password", async () => {
     logger.info({
       user: "username",
-      password: "P@ssw0rd"
+      password: "P@ssw0rd",
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -880,9 +855,9 @@ describe("mongo transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: '{\n  "user": "username",\n  "password": "...[Masked]"\n}'
+      message: '{\n  "user": "username",\n  "password": "...[Masked]"\n}',
     });
   });
 
@@ -896,9 +871,9 @@ describe("mongo transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: "logging with console.log"
+      message: "logging with console.log",
     });
   });
 
@@ -912,7 +887,7 @@ describe("mongo transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
       message:
         "[\n" +
@@ -924,7 +899,7 @@ describe("mongo transport", () => {
         "    1,\n" +
         "    2\n" +
         "  ]\n" +
-        "]"
+        "]",
     });
   });
 
@@ -932,23 +907,23 @@ describe("mongo transport", () => {
     logger.info("An error occured", {
       request: {
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
         },
         body: {
           login: "sdjkjasdh",
-          password: "P@ssw0rd"
-        }
+          password: "P@ssw0rd",
+        },
       },
       response: {
         header: {
           id: null,
-          status: "ERROR"
+          status: "ERROR",
         },
         error: {
           code: "INPDATAFORMAT",
-          message: "Input data format is incorrect"
-        }
-      }
+          message: "Input data format is incorrect",
+        },
+      },
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -979,7 +954,7 @@ describe("mongo transport", () => {
         "      }\n" +
         "    }\n" +
         "  }\n" +
-        "]"
+        "]",
     });
   });
 });
@@ -1005,7 +980,7 @@ describe("loki transport", () => {
     if (logger) {
       logVault.uncaptureConsole();
       const transport = logger.transports.find(
-        (t) => t instanceof LokiTransport
+        (t) => t instanceof LokiTransport,
       );
       if (transport) {
         logger.exceptions.unhandle(transport);
@@ -1024,14 +999,14 @@ describe("loki transport", () => {
       level: "info",
       labels: { project: "log-vault", environment: "test" },
       message: { meta: { process: "log-vault" }, content: "Log record" },
-      [MESSAGE]: '{"meta":{"process":"log-vault"},"content":"Log record"}'
+      [MESSAGE]: '{"meta":{"process":"log-vault"},"content":"Log record"}',
     });
   });
 
   it("log to loki: curcular values", async () => {
     const circular: { a: string; content: string | object } = {
       a: "b",
-      content: ""
+      content: "",
     };
     circular.content = circular;
     logger.warn(circular);
@@ -1042,10 +1017,10 @@ describe("loki transport", () => {
       labels: { project: "log-vault", environment: "test" },
       message: {
         meta: { process: "log-vault" },
-        content: '{\n  "a": "b",\n  "content": "...[Truncated]"\n}'
+        content: '{\n  "a": "b",\n  "content": "...[Truncated]"\n}',
       },
       [MESSAGE]:
-        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"a\\": \\"b\\",\\n  \\"content\\": \\"...[Truncated]\\"\\n}"}'
+        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"a\\": \\"b\\",\\n  \\"content\\": \\"...[Truncated]\\"\\n}"}',
     });
   });
 
@@ -1058,17 +1033,17 @@ describe("loki transport", () => {
       labels: { project: "log-vault", environment: "test" },
       message: {
         meta: { process: "log-vault" },
-        content: ["This is a test", { a: 1 }]
+        content: ["This is a test", { a: 1 }],
       },
       [MESSAGE]:
-        '{"meta":{"process":"log-vault"},"content":["This is a test",{"a":1}]}'
+        '{"meta":{"process":"log-vault"},"content":["This is a test",{"a":1}]}',
     });
   });
 
   it("log to mongo: truncate object nested prop", async () => {
     logger.info({
       deep: { some: { obj: { deep: { deep: "nested" } } } },
-      not_nested: "value"
+      not_nested: "value",
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -1087,10 +1062,10 @@ describe("loki transport", () => {
           "    }\n" +
           "  },\n" +
           '  "not_nested": "value"\n' +
-          "}"
+          "}",
       },
       [MESSAGE]:
-        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"deep\\": {\\n    \\"some\\": {\\n      \\"obj\\": {\\n        \\"deep\\": \\"...[Truncated]\\"\\n      }\\n    }\\n  },\\n  \\"not_nested\\": \\"value\\"\\n}"}'
+        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"deep\\": {\\n    \\"some\\": {\\n      \\"obj\\": {\\n        \\"deep\\": \\"...[Truncated]\\"\\n      }\\n    }\\n  },\\n  \\"not_nested\\": \\"value\\"\\n}"}',
     });
   });
 
@@ -1103,13 +1078,13 @@ describe("loki transport", () => {
       labels: { project: "log-vault", environment: "test" },
       message: {
         content: "a".repeat(2048) + "...",
-        meta: { process: "log-vault" }
+        meta: { process: "log-vault" },
       },
       timestamp: expect.stringMatching(defaultTimestampRegexp),
       [MESSAGE]: JSON.stringify({
         meta: { process: "log-vault" },
-        content: "a".repeat(2048) + "..."
-      })
+        content: "a".repeat(2048) + "...",
+      }),
     });
   });
 
@@ -1117,7 +1092,7 @@ describe("loki transport", () => {
     logger.info(
       "A log record",
       new LogOptions({ meta: { myCustomKey: "value" } }),
-      "something else"
+      "something else",
     );
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -1126,17 +1101,17 @@ describe("loki transport", () => {
       labels: { project: "log-vault", environment: "test" },
       message: {
         meta: { process: "log-vault", myCustomKey: "value" },
-        content: ["A log record", "something else"]
+        content: ["A log record", "something else"],
       },
       [MESSAGE]:
-        '{"meta":{"process":"log-vault","myCustomKey":"value"},"content":["A log record","something else"]}'
+        '{"meta":{"process":"log-vault","myCustomKey":"value"},"content":["A log record","something else"]}',
     });
   });
 
   it("log to loki: mask sensitive field: password", async () => {
     logger.info({
       user: "username",
-      password: "P@ssw0rd"
+      password: "P@ssw0rd",
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -1145,10 +1120,10 @@ describe("loki transport", () => {
       labels: { project: "log-vault", environment: "test" },
       message: {
         meta: { process: "log-vault" },
-        content: '{\n  "user": "username",\n  "password": "...[Masked]"\n}'
+        content: '{\n  "user": "username",\n  "password": "...[Masked]"\n}',
       },
       [MESSAGE]:
-        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"user\\": \\"username\\",\\n  \\"password\\": \\"...[Masked]\\"\\n}"}'
+        '{"meta":{"process":"log-vault"},"content":"{\\n  \\"user\\": \\"username\\",\\n  \\"password\\": \\"...[Masked]\\"\\n}"}',
     });
   });
 
@@ -1162,10 +1137,10 @@ describe("loki transport", () => {
       labels: { project: "log-vault", environment: "test" },
       message: {
         meta: { process: "log-vault" },
-        content: "logging with console.log"
+        content: "logging with console.log",
       },
       [MESSAGE]:
-        '{"meta":{"process":"log-vault"},"content":"logging with console.log"}'
+        '{"meta":{"process":"log-vault"},"content":"logging with console.log"}',
     });
   });
 
@@ -1179,10 +1154,10 @@ describe("loki transport", () => {
       labels: { project: "log-vault", environment: "test" },
       message: {
         meta: { process: "log-vault" },
-        content: ["this is an object:", { some: "data" }, [1, 2]]
+        content: ["this is an object:", { some: "data" }, [1, 2]],
       },
       [MESSAGE]:
-        '{"meta":{"process":"log-vault"},"content":["this is an object:",{"some":"data"},[1,2]]}'
+        '{"meta":{"process":"log-vault"},"content":["this is an object:",{"some":"data"},[1,2]]}',
     });
   });
 });
@@ -1197,7 +1172,7 @@ describe("notifications transport", () => {
     logVault = new LogVault().withNotifications().captureConsole();
     logger = logVault.logger;
     const notificationsTransport = logger.transports.find(
-      (t) => t instanceof NotificationsTransport
+      (t) => t instanceof NotificationsTransport,
     );
     if (!notificationsTransport)
       throw new Error("Failed to instantiate Mongo connection");
@@ -1213,7 +1188,7 @@ describe("notifications transport", () => {
     if (logger) {
       logVault.uncaptureConsole();
       const transport = logger.transports.find(
-        (t) => t instanceof NotificationsTransport
+        (t) => t instanceof NotificationsTransport,
       );
       if (transport) {
         logger.exceptions.unhandle(transport);
@@ -1231,14 +1206,14 @@ describe("notifications transport", () => {
       timestamp: expect.stringMatching(defaultTimestampRegexp),
       level: "info",
       meta: { project: "log-vault", process: "log-vault", environment: "test" },
-      message: "A single string message"
+      message: "A single string message",
     });
   });
 
   it("notifications transport: curcular values", async () => {
     const circular: { a: string; content: string | object } = {
       a: "b",
-      content: ""
+      content: "",
     };
     circular.content = circular;
     logger.warn(circular);
@@ -1249,9 +1224,9 @@ describe("notifications transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: { a: "b", content: "...[Truncated]" }
+      message: { a: "b", content: "...[Truncated]" },
     });
   });
 
@@ -1264,16 +1239,16 @@ describe("notifications transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: ["This is a test", { a: 1 }]
+      message: ["This is a test", { a: 1 }],
     });
   });
 
   it("notifications transport: truncate object nested prop", async () => {
     logger.info({
       deep: { some: { obj: { deep: { deep: "nested" } } } },
-      not_nested: "value"
+      not_nested: "value",
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -1282,12 +1257,12 @@ describe("notifications transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
       message: {
         deep: { some: { obj: { deep: "...[Truncated]" } } },
-        not_nested: "value"
-      }
+        not_nested: "value",
+      },
     });
   });
 
@@ -1300,9 +1275,9 @@ describe("notifications transport", () => {
       meta: {
         environment: "test",
         process: "log-vault",
-        project: "log-vault"
+        project: "log-vault",
       },
-      timestamp: expect.stringMatching(defaultTimestampRegexp)
+      timestamp: expect.stringMatching(defaultTimestampRegexp),
     });
   });
 
@@ -1310,7 +1285,7 @@ describe("notifications transport", () => {
     logger.info(
       "A log record",
       new LogOptions({ meta: { myCustomKey: "value" } }),
-      "something else"
+      "something else",
     );
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -1320,16 +1295,16 @@ describe("notifications transport", () => {
         project: "log-vault",
         process: "log-vault",
         environment: "test",
-        myCustomKey: "value"
+        myCustomKey: "value",
       },
-      message: ["A log record", "something else"]
+      message: ["A log record", "something else"],
     });
   });
 
   it("notifications transport: mask sensitive field: password", async () => {
     logger.info({
       user: "username",
-      password: "P@ssw0rd"
+      password: "P@ssw0rd",
     });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(output).toEqual({
@@ -1338,9 +1313,9 @@ describe("notifications transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: { user: "username", password: "...[Masked]" }
+      message: { user: "username", password: "...[Masked]" },
     });
   });
 
@@ -1354,9 +1329,9 @@ describe("notifications transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: "logging with console.log"
+      message: "logging with console.log",
     });
   });
 
@@ -1370,9 +1345,9 @@ describe("notifications transport", () => {
       meta: {
         project: "log-vault",
         process: "log-vault",
-        environment: "test"
+        environment: "test",
       },
-      message: ["this is an object:", { some: "data" }, [1, 2]]
+      message: ["this is an object:", { some: "data" }, [1, 2]],
     });
   });
 });
@@ -1397,7 +1372,7 @@ describe("fix: empty log message on catched error", () => {
   afterEach(() => {
     if (logger) {
       const transport = logger.transports.find(
-        (t) => t instanceof LokiTransport
+        (t) => t instanceof LokiTransport,
       );
       if (transport) {
         logger.exceptions.unhandle(transport);

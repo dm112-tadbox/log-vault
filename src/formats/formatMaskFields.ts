@@ -29,11 +29,14 @@ export const formatMaskFields = format(
           if (key && fields.includes(key))
             val = maskLabel || defaultMaskFieldsOptions.maskLabel;
           if (typeof val === "string") {
-            try {
-              const parsed = JSON.parse(val);
-              val = JSON.stringify(mask(parsed));
-              // eslint-disable-next-line no-empty
-            } catch (error) {}
+            const trimmed = val.trimStart();
+            if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+              try {
+                const parsed = JSON.parse(val);
+                val = JSON.stringify(mask(parsed));
+                // eslint-disable-next-line no-empty
+              } catch (error) {}
+            }
             val = maskString(val)
           }
           return val;
