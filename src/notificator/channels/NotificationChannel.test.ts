@@ -29,9 +29,10 @@ describe("NotificationChannel class", () => {
 
     const testChannel = new TestChannel({ matchPatterns: [] });
 
-    const resPromise = waitForProcess(queueName);
+    // Await setup to ensure listener is ready before adding job
+    const { completed } = await waitForProcess(queueName);
     testChannel.addToQueue("something");
-    const res = await resPromise;
+    const res = await completed;
     expect(res).toEqual("something");
     await testChannel.stop();
   });

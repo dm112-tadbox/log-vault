@@ -247,7 +247,8 @@ describe("e2e tests: LogVault with Notificator", () => {
   }
 
   async function waitForProcessTest() {
-    const processed = await waitForProcess(`${testToken}.${testChatId}`);
+    const { completed } = await waitForProcess(`${testToken}.${testChatId}`);
+    const processed = await completed;
     timestamp = processed.timestamp.replace(
       /([|{[\]*_~}+)(#>!=\-.])/gm,
       "\\$1"
