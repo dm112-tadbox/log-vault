@@ -36,6 +36,8 @@ jobs:
 
       - name: Tests
         run: npm run test
+        env:
+          FORCE_COLOR: 1
 
   publish:
     needs: test
