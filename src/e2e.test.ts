@@ -40,6 +40,7 @@ describe("e2e tests: LogVault with Notificator", () => {
 
   it("e2e:send notification to Telegram, matched by level", async () => {
     initTest({ matchPatterns: [{ level: "http" }] });
+    await setupQueueListener();
 
     logger.http("something");
     await waitForProcessTest();
@@ -61,6 +62,7 @@ describe("e2e tests: LogVault with Notificator", () => {
 
   it("e2e:send notification to Telegram, mismatch by level", async () => {
     initTest({ matchPatterns: [{ level: "http" }] });
+    await setupQueueListener();
     logger.info("should not be notified");
     await wait(350);
     expect(tgRequestBody).toBe(undefined);
@@ -68,6 +70,7 @@ describe("e2e tests: LogVault with Notificator", () => {
 
   it("e2e:send notification to Telegram, matched by message, nested", async () => {
     initTest({ matchPatterns: [{ match: { message: /error/gi } }] });
+    await setupQueueListener();
     logger.http({
       message: "Request failed",
       details: {
@@ -128,6 +131,7 @@ describe("e2e tests: LogVault with Notificator", () => {
         }
       ]
     });
+    await setupQueueListener();
     logger.http({
       message: "Request failed",
       details: {
@@ -205,8 +209,16 @@ describe("e2e tests: LogVault with Notificator", () => {
     expect(tgRequestBody).toBe(undefined);
   });
 
+  let completedPromise: Promise<any>;
+
+  async function setupQueueListener() {
+    const { completed } = await waitForProcess(`${testToken}.${testChatId}`);
+    completedPromise = completed;
+  }
+
   function initTest(opts: { matchPatterns: MatchPattern[] }) {
     const { matchPatterns = [] } = opts;
+
     notificator = new Notificator({
       workerOpts: {
         limiter: {
@@ -247,8 +259,7 @@ describe("e2e tests: LogVault with Notificator", () => {
   }
 
   async function waitForProcessTest() {
-    const { completed } = await waitForProcess(`${testToken}.${testChatId}`);
-    const processed = await completed;
+    const processed = await completedPromise;
     timestamp = processed.timestamp.replace(
       /([|{[\]*_~}+)(#>!=\-.])/gm,
       "\\$1"

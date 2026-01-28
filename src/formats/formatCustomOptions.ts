@@ -2,18 +2,19 @@ import { format } from "winston";
 import { LogOptions, META, SPLAT } from "..";
 
 export const formatCustomOptions = format((info) => {
-  const optionsIndex = info[SPLAT]?.findIndex(
-    (item: any) => item instanceof LogOptions
+  const splat = info[SPLAT] as unknown[] | undefined;
+  const optionsIndex = splat?.findIndex(
+    (item: unknown) => item instanceof LogOptions
   );
 
-  if ([undefined, -1].includes(optionsIndex)) return info;
+  if (optionsIndex === undefined || optionsIndex === -1) return info;
 
   info[META] = {
-    ...info[META],
-    ...info[SPLAT][optionsIndex].meta
+    ...(info[META] as object),
+    ...(splat![optionsIndex] as LogOptions).meta
   };
 
-  info[SPLAT].splice(optionsIndex, 1);
+  splat!.splice(optionsIndex, 1);
 
   return info;
 });

@@ -5,9 +5,9 @@ import { map } from "obj-walker";
 import { defaultMaskFieldsOptions } from "../defaults";
 
 export const formatMaskFields = format(
-  (info, opts: LogVaultMaskFieldsOptions) => {
+  (info, opts) => {
     const { message, extra, error } = info;
-    const { fields, maskLabel, replacers } = opts;
+    const { fields, maskLabel, replacers } = opts as LogVaultMaskFieldsOptions;
 
     if (fields?.length) {
       if (message) {
