@@ -26,14 +26,14 @@ describe("Notificator class tests", () => {
 
     const testQueue = new Queue("test-notificator-queue");
 
-    // Set up listener BEFORE adding job to avoid race condition
-    const processedPromise = waitForProcess("test-nchannel-queue");
+    // Await setup to ensure listener is ready before adding job
+    const { completed } = await waitForProcess("test-nchannel-queue");
 
     testQueue.add("new-event", {
       data: "test-data"
     });
 
-    const processed = await processedPromise;
+    const processed = await completed;
     expect(processed).toEqual({
       data: "test-data"
     });

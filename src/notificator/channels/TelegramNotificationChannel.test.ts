@@ -35,6 +35,9 @@ describe("TelegramNotificationChannel class", () => {
   });
 
   it("TelegramNotificationChannel", async () => {
+    // Set up listener BEFORE adding job to avoid race condition
+    const { completed } = await waitForProcess(telegramChannel.queueName);
+
     await telegramChannel.addToQueue({
       timestamp: "2024-01-30T11:47:03.633Z",
       level: "error",
@@ -46,7 +49,7 @@ describe("TelegramNotificationChannel class", () => {
       }
     });
 
-    const processed = await waitForProcess(telegramChannel.queueName);
+    const processed = await completed;
 
     expect(processed).toEqual({
       meta: {
