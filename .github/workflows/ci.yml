@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  publish:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,7 +22,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Start Redis ${{ matrix.redis-version }}
         uses: supercharge/redis-github-action@1.8.1
@@ -34,9 +33,29 @@ jobs:
 
       - name: Build package
         run: npm run build
-      
+
       - name: Tests
         run: npm run test
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build package
+        run: npm run build
 
       - name: Publish to npm
         run: npm publish
