@@ -12,6 +12,12 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -34,11 +40,6 @@ jobs:
       - name: Build package
         run: npm run build
       
-      - name: Start Redis
-        uses: supercharge/redis-github-action@1.8.1
-        with:
-          redis-version: 7
-
       - name: Tests
         run: npm run test
         env:
