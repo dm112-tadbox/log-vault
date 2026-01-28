@@ -3,16 +3,16 @@ import { format } from "winston";
 import { LogOptions, MESSAGE } from "..";
 
 export const formatConsole = format(
-  (info, opts: { inspectOptions: InspectOptions }) => {
+  (info, opts) => {
     const { message, level, timestamp, extra } = info;
-    const { inspectOptions } = opts;
+    const { inspectOptions } = opts as { inspectOptions: InspectOptions };
     let line = `${timestamp} ${level}: `;
     if (message)
       line += ["string", "number"].includes(typeof message)
         ? message
         : inspect(message, inspectOptions);
-    if (extra?.length) {
-      const filteredExtra = extra.filter(
+    if ((extra as unknown[])?.length) {
+      const filteredExtra = (extra as unknown[]).filter(
         (i: any) => !(i instanceof LogOptions)
       );
       if (filteredExtra.length)

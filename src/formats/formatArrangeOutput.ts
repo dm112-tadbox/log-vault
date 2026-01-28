@@ -3,7 +3,7 @@ import { LEVEL, LogVaultFormatArrangeOutput, MESSAGE, META, SPLAT } from "..";
 import { truncate } from "obj-walker";
 
 export const formatArrangeOutput = format(
-  (info, opts: LogVaultFormatArrangeOutput) => {
+  (info, opts) => {
     const {
       message,
       error,
@@ -15,10 +15,10 @@ export const formatArrangeOutput = format(
       [MESSAGE]: stringifiedMessage,
       ...extra
     } = info;
-    const { truncateOptions } = opts;
+    const { truncateOptions } = opts as LogVaultFormatArrangeOutput;
     const arrangedExtra = [];
 
-    if (splat) arrangedExtra.push(...splat);
+    if (splat) arrangedExtra.push(...(splat as unknown[]));
     else if (extra && Object.keys(extra).length)
       arrangedExtra.push({ ...(extra as { [key: string]: any }) });
 
