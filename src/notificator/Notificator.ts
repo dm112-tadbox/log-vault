@@ -1,15 +1,17 @@
 import { Job, Worker } from "bullmq";
+import { EventEmitter } from "node:events";
 import { defaultRedisConnection } from "../defaults";
 import { NotificationChannel } from "./channels/NotificationChannel";
 import { matchPattern } from "./util/matchPattern";
 import { projectDirName } from "../util";
 import { NotificatorConstructorOptions } from "../types";
 
-export class Notificator {
+export class Notificator extends EventEmitter {
   protected worker: Worker;
   protected channels: NotificationChannel[] = [];
 
   constructor(opts: NotificatorConstructorOptions = {}) {
+    super();
     const { queueName = projectDirName(), workerOpts } = opts;
 
     this.worker = new Worker(
@@ -28,7 +30,7 @@ export class Notificator {
     );
 
     this.worker.on("error", (err) => {
-      console.error(err);
+      process.stderr.write(`[Notificator] ${err}\n`);
     });
   }
 
@@ -39,10 +41,12 @@ export class Notificator {
 
   public async stop(): Promise<Notificator> {
     await this.worker.close();
+    await Promise.all(this.channels.map((c) => c.stop()));
     return this;
   }
 
   public add(channel: NotificationChannel): Notificator {
+    channel.on("failed", (job: Job, err: Error) => this.emit("failed", job, err));
     this.channels.push(channel);
     return this;
   }

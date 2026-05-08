@@ -78,12 +78,13 @@ function renderLogMessage(template: string, log: NotificatonTransportLogItem) {
 }
 
 function shrinkStringSize(
-  str: string,
+  str: string | undefined,
   limit: number
 ): { shrinkedMessage: string; shrinked: boolean } {
-  const shrinked = str.length > limit;
+  const safe = str ?? "";
+  const shrinked = safe.length > limit;
   return {
-    shrinkedMessage: str.substring(0, limit),
+    shrinkedMessage: safe.substring(0, limit),
     shrinked
   };
 }
@@ -100,6 +101,7 @@ export class TelegramNotificationChannel extends NotificationChannel {
       token,
       workerOptions = {},
       queueOptions = {},
+      jobOptions = {},
       chatId,
       template = basicTemplate
     } = opts;
@@ -111,21 +113,17 @@ export class TelegramNotificationChannel extends NotificationChannel {
     this.process({
       queueName: this.queueName,
       processor: async (job: Job) => {
-        try {
-          const log: NotificatonTransportLogItem = job.data;
-          await axios({
-            method: "post",
-            baseURL,
-            url: "sendMessage",
-            data: {
-              chat_id: chatId,
-              text: renderLogMessage(template, log),
-              parse_mode: "MarkdownV2"
-            }
-          });
-        } catch (error) {
-          console.error(error);
-        }
+        const log: NotificatonTransportLogItem = job.data;
+        await axios({
+          method: "post",
+          baseURL,
+          url: "sendMessage",
+          data: {
+            chat_id: chatId,
+            text: renderLogMessage(template, log),
+            parse_mode: "MarkdownV2"
+          }
+        });
         return job.data;
       },
       workerOptions: {
@@ -135,7 +133,12 @@ export class TelegramNotificationChannel extends NotificationChannel {
         },
         ...workerOptions
       },
-      queueOptions
+      queueOptions,
+      jobOptions: {
+        attempts: 5,
+        backoff: { type: "exponential", delay: 5000 },
+        ...jobOptions
+      }
     });
   }
 
