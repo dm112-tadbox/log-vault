@@ -35,7 +35,8 @@ export class NotificationsTransport extends Transport {
       await this.queue.add(randomUUID(), info, this.jobOptions);
       callback();
     } catch (error) {
-      callback(error);
+      process.stderr.write(`[NotificationsTransport] Failed to queue log: ${error}\n`);
+      callback();
     }
   }
 }

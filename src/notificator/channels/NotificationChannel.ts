@@ -59,6 +59,16 @@ export class NotificationChannel extends EventEmitter {
       ...workerOptions
     });
 
+    this.worker.on("error", (err) => {
+      process.stderr.write(`[NotificationChannel] ${err}\n`);
+    });
+
+    this.worker.on("failed", (job, err) => {
+      if (job && job.attemptsMade >= (job.opts.attempts ?? 1)) {
+        this.emit("failed", job, err);
+      }
+    });
+
     return this;
   }
 
@@ -67,7 +77,7 @@ export class NotificationChannel extends EventEmitter {
   }
 
   public async stop() {
-    await this.queue?.obliterate();
     await this.worker?.close();
+    await this.queue?.close();
   }
 }

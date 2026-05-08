@@ -10,7 +10,9 @@ import {
   LogVaultMongoOptions,
   NotificationTransportOptions
 } from "./types";
-import { META } from ".";
+import { Job } from "bullmq";
+import { META, SKIP_NOTIFICATIONS } from ".";
+import { Notificator } from "./notificator";
 import { projectDirName } from "./util";
 import { Console, DailyRotateFile } from "winston/lib/winston/transports";
 import {
@@ -189,12 +191,24 @@ export class LogVault {
     return this;
   }
 
+  public withNotificator(notificator: Notificator): LogVault {
+    notificator.on("failed", (job: Job, err: Error) => {
+      this.logger.error("Notification delivery failed", {
+        err: err.message,
+        payload: job?.data,
+        [SKIP_NOTIFICATIONS]: true
+      });
+    });
+    return this;
+  }
+
   public withNotifications(opts: NotificationTransportOptions = {}): LogVault {
     this.logger.add(
       new NotificationsTransport({
         name: this.projectName,
         ...opts,
         format: format.combine(
+          format((info: any) => (info[SKIP_NOTIFICATIONS] ? false : info))(),
           format.timestamp({ format: defaultTimestamp }),
           formatCustomOptions(),
           formatError(),
